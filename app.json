@@ -1,30 +1,60 @@
 {
   "expo": {
-    "name": "claw-voice",
+    "name": "Claw Voice",
     "slug": "claw-voice",
+    "scheme": "clawvoice",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#050810"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "infoPlistEntries": {
+        "NSSpeechRecognitionUsageDescription": "Allow Claw to use speech recognition for voice commands.",
+        "NSMicrophoneUsageDescription": "Allow Claw to use your microphone for voice commands."
+      },
+      "bundleIdentifier": "com.roberto.clawvoice"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#050810",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Claw to use your microphone for voice commands."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Claw to show your photos when you ask for them.",
+          "savePhotosPermission": "Allow Claw to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ]
   }
 }
