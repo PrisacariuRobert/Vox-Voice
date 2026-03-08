@@ -176,6 +176,14 @@ export async function runDoctor(projectRoot) {
     passed++;
 
     // Check key values
+    if (config.anthropicApiKey) {
+      check('Anthropic (Claude) API key configured');
+      passed++;
+    } else {
+      warn('Anthropic API key not set — needed for AI model (Claude)');
+      warnings++;
+    }
+
     if (config.openaiApiKey) {
       check('OpenAI API key configured');
       passed++;

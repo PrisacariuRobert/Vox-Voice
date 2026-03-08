@@ -54,6 +54,7 @@ export async function runConfig(projectRoot) {
     {
       title: 'API Keys',
       fields: [
+        ['Anthropic (Claude)', maskKey(config.anthropicApiKey)],
         ['OpenAI', maskKey(config.openaiApiKey)],
       ],
     },
@@ -131,6 +132,7 @@ export async function runConfig(projectRoot) {
   const editableFields = [
     { name: 'Gateway URL', key: 'gatewayUrl' },
     { name: 'Auth Token', key: 'authToken' },
+    { name: 'Anthropic (Claude) API Key', key: 'anthropicApiKey' },
     { name: 'OpenAI API Key', key: 'openaiApiKey' },
     { name: 'User Name', key: 'userName' },
     { name: 'User Email', key: 'userEmail' },

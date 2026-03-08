@@ -4,13 +4,14 @@
  * Steps:
  *   1. Check system requirements
  *   2. Install npm dependencies
- *   3. Configure API keys (OpenAI, Gateway)
- *   4. User profile
- *   5. TTS provider
- *   6. Optional integrations (Zoom, Microsoft)
- *   7. Optional: Photo Search server
- *   8. Write config & patch constants/config.ts
- *   9. Summary + next steps
+ *   3. Configure gateway (OpenClaw)
+ *   4. API keys (Claude/Anthropic + OpenAI)
+ *   5. User profile
+ *   6. TTS provider
+ *   7. Optional integrations (Zoom, Microsoft)
+ *   8. Optional: Photo Search server
+ *   9. Write config & patch constants/config.ts
+ *  10. Summary + next steps
  */
 
 import chalk from 'chalk';
@@ -47,7 +48,7 @@ export async function runSetup(projectRoot) {
   const existing = loadConfig();
   const config = { ...existing };
 
-  const TOTAL_STEPS = 8;
+  const TOTAL_STEPS = 9;
 
   // ─── Step 1: System requirements ──────────────────────────────────────────
 
@@ -130,11 +131,34 @@ export async function runSetup(projectRoot) {
   config.gatewayUrl = gatewayAnswers.gatewayUrl;
   config.authToken = gatewayAnswers.authToken;
 
-  // ─── Step 4: OpenAI API Key ───────────────────────────────────────────────
+  // ─── Step 4: API Keys ────────────────────────────────────────────────────
 
   step(4, TOTAL_STEPS, 'API Keys');
   console.log('');
-  console.log(chalk.gray('  Vox uses OpenAI for speech-to-text (Whisper) and text-to-speech.'));
+  console.log(chalk.bold.white('  Claude (Anthropic) — the AI brain'));
+  console.log(chalk.gray('  OpenClaw uses Claude as its AI model. You need an Anthropic API key.'));
+  console.log(chalk.gray('  Get your key at: https://console.anthropic.com/settings/keys'));
+  console.log('');
+
+  const claudeAnswers = await inquirer.prompt([
+    {
+      type: 'password',
+      name: 'anthropicApiKey',
+      message: 'Anthropic API key (sk-ant-...):',
+      default: config.anthropicApiKey || '',
+      mask: '*',
+      validate: (v) => {
+        if (!v) return 'Anthropic API key is required — this powers the AI responses';
+        if (!v.startsWith('sk-ant-')) return 'Key should start with sk-ant-';
+        return true;
+      },
+    },
+  ]);
+  config.anthropicApiKey = claudeAnswers.anthropicApiKey;
+
+  console.log('');
+  console.log(chalk.bold.white('  OpenAI — voice & vision'));
+  console.log(chalk.gray('  Used for Whisper speech-to-text, TTS, and photo search verification.'));
   console.log(chalk.gray('  Get your key at: https://platform.openai.com/api-keys'));
   console.log('');
 
@@ -156,7 +180,7 @@ export async function runSetup(projectRoot) {
 
   // ─── Step 5: User Profile ────────────────────────────────────────────────
 
-  step(5, TOTAL_STEPS, 'Your profile');
+  step(5, TOTAL_STEPS, 'Your profile (personalization)');
   console.log('');
   console.log(chalk.gray('  Vox uses your name, email, and timezone to personalize responses.'));
   console.log('');
@@ -257,7 +281,7 @@ export async function runSetup(projectRoot) {
     config.googleTtsApiKey = googleAnswers.googleTtsApiKey;
   }
 
-  // ─── Step 7: Optional integrations ────────────────────────────────────────
+  // ─── Step 7: Optional integrations ─────────────────────────────────────────
 
   step(7, TOTAL_STEPS, 'Optional integrations');
   console.log('');
@@ -375,9 +399,42 @@ export async function runSetup(projectRoot) {
     }
   }
 
-  // ─── Step 8: Write configuration ──────────────────────────────────────────
+  // ─── Step 8: Write OpenClaw config ─────────────────────────────────────────
 
-  step(8, TOTAL_STEPS, 'Saving configuration');
+  step(8, TOTAL_STEPS, 'Configuring OpenClaw gateway');
+  console.log('');
+
+  // Write the Anthropic key into OpenClaw's config if we can find it
+  const openclawConfigLocations = [
+    join(process.env.HOME || '~', '.openclaw', 'openclaw.json'),
+    join(process.env.HOME || '~', 'openclaw.json'),
+  ];
+
+  let openclawConfigPath = openclawConfigLocations.find((p) => existsSync(p));
+
+  if (openclawConfigPath && config.anthropicApiKey) {
+    try {
+      const openclawConfig = JSON.parse(readFileSync(openclawConfigPath, 'utf-8'));
+      if (!openclawConfig.anthropic_api_key || openclawConfig.anthropic_api_key !== config.anthropicApiKey) {
+        openclawConfig.anthropic_api_key = config.anthropicApiKey;
+        writeFileSync(openclawConfigPath, JSON.stringify(openclawConfig, null, 2) + '\n');
+        check(`Updated Anthropic API key in ${openclawConfigPath}`);
+      } else {
+        check('Anthropic API key already set in OpenClaw config');
+      }
+    } catch (e) {
+      warn(`Could not update OpenClaw config: ${e.message}`);
+      info(`Manually add your key: export ANTHROPIC_API_KEY=${config.anthropicApiKey.slice(0, 10)}...`);
+    }
+  } else if (config.anthropicApiKey) {
+    info('OpenClaw config not found — make sure to set your Anthropic API key:');
+    console.log(chalk.cyan(`     export ANTHROPIC_API_KEY=sk-ant-...`));
+    console.log(chalk.gray('     Or add it to your openclaw.json'));
+  }
+
+  // ─── Step 9: Write Vox configuration ──────────────────────────────────────
+
+  step(9, TOTAL_STEPS, 'Saving configuration');
   console.log('');
 
   // Save to ~/.vox/config.json
@@ -419,12 +476,13 @@ export async function runSetup(projectRoot) {
   console.log(chalk.bold.green('  ✓ Setup complete!'));
   console.log('');
   console.log(chalk.bold('  Configuration saved:'));
-  console.log(chalk.gray(`    ${config.userName ? `User:     ${config.userName}` : 'User:     (set in app Settings)'}`));
-  console.log(chalk.gray(`    Gateway:  ${config.gatewayUrl}`));
-  console.log(chalk.gray(`    OpenAI:   ${config.openaiApiKey ? '••••' + config.openaiApiKey.slice(-4) : 'not set'}`));
-  console.log(chalk.gray(`    TTS:      ${config.ttsProvider}`));
-  console.log(chalk.gray(`    Zoom:     ${config.zoomAccountId ? 'configured' : 'not configured'}`));
-  console.log(chalk.gray(`    Microsoft:${config.microsoftClientId ? ' configured' : ' not configured'}`));
+  console.log(chalk.gray(`    ${config.userName ? `User:      ${config.userName}` : 'User:      (set in app Settings)'}`));
+  console.log(chalk.gray(`    Gateway:   ${config.gatewayUrl}`));
+  console.log(chalk.gray(`    Claude:    ${config.anthropicApiKey ? '••••' + config.anthropicApiKey.slice(-4) : 'not set'}`));
+  console.log(chalk.gray(`    OpenAI:    ${config.openaiApiKey ? '••••' + config.openaiApiKey.slice(-4) : 'not set'}`));
+  console.log(chalk.gray(`    TTS:       ${config.ttsProvider}`));
+  console.log(chalk.gray(`    Zoom:      ${config.zoomAccountId ? 'configured' : 'not configured'}`));
+  console.log(chalk.gray(`    Microsoft: ${config.microsoftClientId ? 'configured' : 'not configured'}`));
   console.log('');
 
   divider();
