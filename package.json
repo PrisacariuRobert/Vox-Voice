@@ -6,7 +6,12 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "vox": "node cli/bin/vox.mjs",
+    "setup": "node cli/bin/vox.mjs setup",
+    "doctor": "node cli/bin/vox.mjs doctor",
+    "deploy": "node cli/bin/vox.mjs deploy",
+    "postinstall": "cd cli && npm install --silent"
   },
   "dependencies": {
     "@expo-google-fonts/syne": "^0.4.2",

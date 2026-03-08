@@ -1,0 +1,17 @@
+{
+  "name": "vox-cli",
+  "version": "1.0.0",
+  "description": "Setup & launcher CLI for Vox Voice Assistant",
+  "bin": {
+    "vox": "./bin/vox.mjs"
+  },
+  "type": "module",
+  "scripts": {
+    "link": "npm link"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "inquirer": "^12.6.0",
+    "ora": "^8.2.0"
+  }
+}
