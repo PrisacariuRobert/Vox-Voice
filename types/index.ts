@@ -1,3 +1,27 @@
+/**
+ * Vox Type Definitions — All TypeScript types and interfaces for the Vox voice assistant.
+ *
+ * Key types:
+ *   OrbState (6 states): idle, wake_listening, recording, thinking, speaking, done
+ *   AppSettings (35+ fields): gateway, API keys, user profile, TTS, STT, Zoom, Microsoft
+ *   ActionType (7 types): send_email, create_event, create_meeting, delete_event, update_event, set_alarm, cancel_alarm
+ *   CardType (25+ types): weather, calendar, email, music, stocks, navigation, photos, etc.
+ *   ActionPayload: unified payload for all action types (email, calendar, meeting, alarm fields)
+ *   ConversationMessage: chat message with optional card data attachment
+ *
+ * Data interfaces:
+ *   PhotoQuery: from/to dates, limit, personName, searchType
+ *   NowPlayingData: title, artist, album, isPlaying, source
+ *   ContactData: name, email, phone, initials
+ *   FlightData: number, status, from, to, departure, arrival, gate
+ *   PackageData: carrier, status, eta, tracking
+ *   NavigationData: destination, eta, distance
+ *   StockQuote: symbol, price, change, isUp
+ *   HealthMetric: steps, heart_rate, sleep, calories, distance, workouts
+ *
+ * @module types
+ */
+
 // Orb states
 export type OrbState =
   | 'idle'
