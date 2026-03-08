@@ -1,3 +1,21 @@
+/**
+ * Action Validator — Checks required fields before executing an action.
+ *
+ * If required fields are missing, returns ClarificationField[] describing
+ * what the user needs to provide. The ClarificationDialog component then
+ * prompts the user before re-attempting execution.
+ *
+ * Required fields by action:
+ *   send_email:     to, subject, body
+ *   create_event:   title, startTime
+ *   create_meeting: meetingSubject, meetingStartTime
+ *   delete_event:   searchTitle
+ *   update_event:   searchTitle
+ *   set_alarm:      alarmTime (HH:MM 24h format)
+ *   cancel_alarm:   (none — always valid)
+ *
+ * @module action-validator
+ */
 import { ActionPayload, ActionType, ClarificationField } from '../types';
 
 const REQUIRED_FIELDS: Record<ActionType, { key: keyof ActionPayload; label: string; placeholder: string }[]> = {

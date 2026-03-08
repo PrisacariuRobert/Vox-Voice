@@ -1,3 +1,24 @@
+/**
+ * Action Executor — Dispatches parsed [ACTION:] markers to the correct provider.
+ *
+ * Supported actions:
+ *   send_email     → Microsoft Graph (Outlook) or Apple Mail (osascript fallback)
+ *   create_event   → Outlook Calendar API or Apple Calendar (expo-calendar)
+ *   create_meeting → Zoom Server-to-Server OAuth API → returns join link
+ *   delete_event   → Outlook or Apple Calendar (searches by title within ±30 days)
+ *   update_event   → Outlook or Apple Calendar (finds event by searchTitle, patches fields)
+ *   set_alarm      → Opens Clock app via deep link (clock-alarm://) + notification backup
+ *   cancel_alarm   → Opens Clock app, cancels all scheduled notifications
+ *
+ * Provider selection:
+ *   - If Microsoft tokens are present → uses Outlook/Graph API
+ *   - If Zoom credentials exist → uses Zoom API for meetings
+ *   - Otherwise → falls back to Apple native (Calendar, Mail)
+ *
+ * Returns: { success: boolean, error?: string, provider?: string, data?: any }
+ *
+ * @module action-executor
+ */
 import { ActionPayload, AppSettings } from '../types';
 import { getValidAccessToken } from './microsoft-auth';
 import { sendOutlookEmail, createOutlookEvent, deleteOutlookEvent, updateOutlookEvent } from './microsoft-graph';
