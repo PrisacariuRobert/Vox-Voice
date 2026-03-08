@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { ContactData } from '../../types';
+import { UserIcon, PhoneIcon, MailIcon, ChatIcon } from '../Icons';
 
 interface ContactCardProps {
   content: string;
@@ -37,7 +38,7 @@ export function ContactCard({ content, metadata }: ContactCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>👤</Text>
+        <UserIcon size={18} color={Colors.accent2} />
         <Text style={styles.title}>Contact</Text>
       </View>
 
@@ -58,7 +59,7 @@ export function ContactCard({ content, metadata }: ContactCardProps) {
             style={styles.actionBtn}
             onPress={() => Linking.openURL(`tel:${phone.replace(/\s/g, '')}`)}
           >
-            <Text style={styles.actionIcon}>📞</Text>
+            <PhoneIcon size={18} color={Colors.accent2} />
             <Text style={styles.actionLabel}>Call</Text>
           </TouchableOpacity>
         )}
@@ -67,7 +68,7 @@ export function ContactCard({ content, metadata }: ContactCardProps) {
             style={styles.actionBtn}
             onPress={() => Linking.openURL(`mailto:${email}`)}
           >
-            <Text style={styles.actionIcon}>✉️</Text>
+            <MailIcon size={18} color={Colors.accent2} />
             <Text style={styles.actionLabel}>Email</Text>
           </TouchableOpacity>
         )}
@@ -76,7 +77,7 @@ export function ContactCard({ content, metadata }: ContactCardProps) {
             style={styles.actionBtn}
             onPress={() => Linking.openURL(`sms:${phone.replace(/\s/g, '')}`)}
           >
-            <Text style={styles.actionIcon}>💬</Text>
+            <ChatIcon size={18} color={Colors.accent2} />
             <Text style={styles.actionLabel}>Message</Text>
           </TouchableOpacity>
         )}
@@ -113,8 +114,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 8,
   },
-  icon: { fontSize: 18, marginRight: 8 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,
@@ -165,7 +166,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  actionIcon: { fontSize: 18 },
   actionLabel: {
     fontFamily: 'Syne_500Medium',
     fontSize: 11,

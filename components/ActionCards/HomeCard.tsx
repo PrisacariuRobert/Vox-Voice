@@ -1,9 +1,14 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import {
+  LightbulbIcon, LightOffIcon, LockIcon, UnlockIcon,
+  ThermometerIcon, AlertIcon, HomeIcon, CameraIcon,
+  FanIcon, CheckIcon,
+} from '../Icons';
 
 interface HomeCardProps {
   content: string;
@@ -11,7 +16,7 @@ interface HomeCardProps {
 }
 
 interface HomeAction {
-  icon: string;
+  icon: React.ReactElement;
   label: string;
   device: string;
   color: string;
@@ -23,29 +28,29 @@ function detectHomeAction(text: string, meta?: Record<string, unknown>): HomeAct
 
   if (/light|lamp|bulb/.test(lower)) {
     const isOn = /turn on|lights on|on/.test(lower) && !/off/.test(lower);
-    return { icon: isOn ? '💡' : '🌑', label: isOn ? 'Lights On' : 'Lights Off', device: device || 'Lights', color: isOn ? '#f5a623' : '#555' };
+    return { icon: isOn ? <LightbulbIcon size={30} color="#f5a623" /> : <LightOffIcon size={30} color="#555" />, label: isOn ? 'Lights On' : 'Lights Off', device: device || 'Lights', color: isOn ? '#f5a623' : '#555' };
   }
   if (/lock|door/.test(lower)) {
     const isLocked = /lock/.test(lower) && !/unlock/.test(lower);
-    return { icon: isLocked ? '🔒' : '🔓', label: isLocked ? 'Door Locked' : 'Door Unlocked', device: device || 'Front Door', color: isLocked ? Colors.success : Colors.pink };
+    return { icon: isLocked ? <LockIcon size={30} /> : <UnlockIcon size={30} />, label: isLocked ? 'Door Locked' : 'Door Unlocked', device: device || 'Front Door', color: isLocked ? Colors.success : Colors.pink };
   }
   if (/thermo|temperature|heat|cool/.test(lower)) {
     const temp = text.match(/(\d+)\s*(?:°|degrees?|C|F)/)?.[1];
-    return { icon: '🌡️', label: temp ? `Set to ${temp}°` : 'Thermostat', device: device || 'Thermostat', color: Colors.accent };
+    return { icon: <ThermometerIcon size={30} />, label: temp ? `Set to ${temp}°` : 'Thermostat', device: device || 'Thermostat', color: Colors.accent };
   }
   if (/alarm|security/.test(lower)) {
-    return { icon: '🚨', label: 'Security', device: device || 'Alarm', color: Colors.pink };
+    return { icon: <AlertIcon size={30} color={Colors.pink} />, label: 'Security', device: device || 'Alarm', color: Colors.pink };
   }
   if (/scene|movie|good morning|good night|away|arrive/.test(lower)) {
-    return { icon: '🏠', label: 'Scene Activated', device: device || 'Home', color: Colors.accent2 };
+    return { icon: <HomeIcon size={30} />, label: 'Scene Activated', device: device || 'Home', color: Colors.accent2 };
   }
   if (/camera/.test(lower)) {
-    return { icon: '📷', label: 'Camera', device: device || 'Camera', color: Colors.accent };
+    return { icon: <CameraIcon size={30} />, label: 'Camera', device: device || 'Camera', color: Colors.accent };
   }
   if (/fan/.test(lower)) {
-    return { icon: '🌀', label: 'Fan', device: device || 'Fan', color: Colors.accent };
+    return { icon: <FanIcon size={30} />, label: 'Fan', device: device || 'Fan', color: Colors.accent };
   }
-  return { icon: '🏠', label: 'Home', device: device || 'HomeKit', color: Colors.accent };
+  return { icon: <HomeIcon size={30} />, label: 'Home', device: device || 'HomeKit', color: Colors.accent };
 }
 
 export function HomeCard({ content, metadata }: HomeCardProps) {
@@ -69,7 +74,7 @@ export function HomeCard({ content, metadata }: HomeCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={[styles.iconCircle, { backgroundColor: `${action.color}22` }]}>
-        <Text style={styles.icon}>{action.icon}</Text>
+        <View style={styles.icon}>{action.icon}</View>
       </View>
       <View style={styles.info}>
         <Text style={styles.label}>Home</Text>
@@ -77,7 +82,7 @@ export function HomeCard({ content, metadata }: HomeCardProps) {
         <Text style={styles.device}>{action.device}</Text>
       </View>
       <View style={[styles.checkBadge, { backgroundColor: action.color }]}>
-        <Text style={styles.check}>✓</Text>
+        <CheckIcon size={16} color="#fff" />
       </View>
     </Animated.View>
   );
@@ -102,7 +107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: { fontSize: 30 },
+  icon: { width: 30, height: 30, alignItems: 'center' as const, justifyContent: 'center' as const },
   info: { flex: 1 },
   label: {
     fontFamily: 'Syne_500Medium',
@@ -128,10 +133,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  check: {
-    fontFamily: 'Syne_700Bold',
-    fontSize: 16,
-    color: '#fff',
   },
 });

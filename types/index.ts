@@ -17,6 +17,7 @@ export interface AppSettings {
   userTimezone: string;
   userCalendar: string;
   userEmailApp: string;
+  useGpsLocation: boolean;
   wakePhrases: string[];
   ttsProvider: 'openai' | 'kokoro' | 'google' | 'device';
   openaiTtsVoice: string;
@@ -27,7 +28,61 @@ export interface AppSettings {
   whisperApiKey: string;
   sttProvider: 'whisper' | 'google' | 'device';
   connectedServices: Record<string, boolean>;
+  // Microsoft Graph
+  microsoftClientId: string;
+  microsoftAccessToken: string;
+  microsoftRefreshToken: string;
+  microsoftTokenExpiry: number;
+  microsoftUserEmail: string;
+  // Zoom (Server-to-Server OAuth)
+  zoomAccountId: string;
+  zoomClientId: string;
+  zoomClientSecret: string;
+  zoomAccessToken: string;
+  zoomRefreshToken: string;
+  zoomTokenExpiry: number;
+  zoomUserEmail: string;
 }
+
+// ─── Action system ────────────────────────────────────────────────────────────
+
+export type ActionType = 'send_email' | 'create_event' | 'create_meeting' | 'delete_event' | 'update_event' | 'set_alarm' | 'cancel_alarm';
+
+export interface ActionPayload {
+  actionType: ActionType;
+  // Email fields
+  to?: string;
+  cc?: string;
+  subject?: string;
+  body?: string;
+  // Calendar / meeting fields
+  title?: string;
+  startTime?: string;  // ISO 8601
+  endTime?: string;    // ISO 8601
+  location?: string;
+  attendees?: string[];
+  // Meeting specific
+  meetingSubject?: string;
+  meetingStartTime?: string;
+  meetingEndTime?: string;
+  sendTo?: string; // Email address to send meeting link to after creation
+  // Delete/modify event
+  eventId?: string;
+  searchTitle?: string; // For finding events to delete/modify
+  // Alarm
+  alarmTime?: string; // HH:MM in 24h format (e.g. "07:00", "15:30")
+  alarmLabel?: string;
+}
+
+export interface ClarificationField {
+  key: keyof ActionPayload;
+  label: string;
+  placeholder: string;
+  required: boolean;
+  value?: string;
+}
+
+export type ActionStatus = 'pending' | 'executing' | 'success' | 'error';
 
 // OpenClaw message
 export interface OpenClawMessage {
@@ -59,12 +114,22 @@ export type CardType =
   | 'home'
   | 'alarm'
   | 'system_control'
+  | 'navigation'
+  | 'sports'
+  | 'places'
+  | 'flight'
+  | 'package'
+  | 'document'
+  | 'routine'
+  | 'health'
   | 'generic';
 
 export interface PhotoQuery {
   from?: number;
   to?: number;
   limit?: number;
+  personName?: string;
+  searchType?: 'location' | 'name' | 'latest';
 }
 
 export interface CalendarEvent {
@@ -114,6 +179,62 @@ export interface ConversationMessage {
   content: string;
   timestamp: Date;
   card?: CardData;
+}
+
+// ─── New feature data types ───────────────────────────────────────────────────
+
+export interface NavigationData {
+  destination?: string;
+  eta?: string;
+  distance?: string;
+}
+
+export interface SportsData {
+  type?: 'score' | 'standings' | 'f1' | 'schedule';
+  league?: string;
+  team?: string;
+}
+
+export interface PlaceData {
+  query?: string;
+  count?: number;
+}
+
+export interface FlightData {
+  number?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  departure?: string;
+  arrival?: string;
+  gate?: string;
+}
+
+export interface PackageData {
+  carrier?: string;
+  status?: string;
+  eta?: string;
+  tracking?: string;
+}
+
+export interface DocumentData {
+  action?: 'summary' | 'search';
+  name?: string;
+  query?: string;
+  count?: number;
+}
+
+export interface RoutineStep {
+  label: string;
+  command: string;
+  done?: boolean;
+}
+
+export interface HealthMetric {
+  type: 'steps' | 'heart_rate' | 'sleep' | 'calories' | 'distance' | 'workouts';
+  value?: string;
+  unit?: string;
+  goal?: string;
 }
 
 // Connection status

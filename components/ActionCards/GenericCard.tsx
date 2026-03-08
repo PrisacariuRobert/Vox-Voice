@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { ChatIcon } from '../Icons';
 
 interface GenericCardProps {
   content: string;
@@ -29,7 +30,7 @@ export function GenericCard({ content }: GenericCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>💬</Text>
+        <ChatIcon size={20} color={Colors.textSecondary} />
         <Text style={styles.title}>Response</Text>
       </View>
       <Text style={styles.content}>{content}</Text>
@@ -49,9 +50,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
-  icon: { fontSize: 20, marginRight: 8 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,

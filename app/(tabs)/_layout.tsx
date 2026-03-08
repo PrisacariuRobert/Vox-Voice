@@ -1,18 +1,21 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { MicIcon, ClockIcon, GearIcon } from '../../components/Icons';
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    index: '◉',
-    history: '◎',
-    settings: '⚙',
-  };
-  return (
-    <Text style={[styles.icon, focused ? styles.iconActive : styles.iconInactive]}>
-      {icons[label] ?? '●'}
-    </Text>
-  );
+  const color = focused ? Colors.tabActive : Colors.tabInactive;
+  const size = 22;
+  switch (label) {
+    case 'index':
+      return <MicIcon size={size} color={color} strokeWidth={1.8} />;
+    case 'history':
+      return <ClockIcon size={size} color={color} strokeWidth={1.8} />;
+    case 'settings':
+      return <GearIcon size={size} color={color} strokeWidth={1.8} />;
+    default:
+      return <View style={{ width: size, height: size }} />;
+  }
 }
 
 export default function TabLayout() {
@@ -63,14 +66,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Syne_500Medium',
     fontSize: 11,
     marginBottom: 4,
-  },
-  icon: {
-    fontSize: 20,
-  },
-  iconActive: {
-    color: Colors.tabActive,
-  },
-  iconInactive: {
-    color: Colors.tabInactive,
   },
 });

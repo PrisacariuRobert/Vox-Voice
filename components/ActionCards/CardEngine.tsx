@@ -1,4 +1,4 @@
-import { CardData, PhotoQuery } from '../../types';
+import { CardData, PhotoQuery, ActionStatus } from '../../types';
 import { GenericCard } from './GenericCard';
 import { CalendarCard } from './CalendarCard';
 import { WeatherCard } from './WeatherCard';
@@ -16,23 +16,35 @@ import { StocksCard } from './StocksCard';
 import { HomeCard } from './HomeCard';
 import { AlarmCard } from './AlarmCard';
 import { NewsCard } from './NewsCard';
+import { NavigationCard } from './NavigationCard';
+import { SportsCard } from './SportsCard';
+import { PlacesCard } from './PlacesCard';
+import { FlightCard } from './FlightCard';
+import { PackageCard } from './PackageCard';
+import { DocumentCard } from './DocumentCard';
+import { RoutineCard } from './RoutineCard';
+import { HealthCard } from './HealthCard';
 
 interface CardEngineProps {
   card: CardData;
+  actionStatus?: ActionStatus | null;
+  actionError?: string | null;
+  actionProvider?: string | null;
+  actionData?: Record<string, unknown> | null;
 }
 
-export function CardEngine({ card }: CardEngineProps) {
+export function CardEngine({ card, actionStatus, actionError, actionProvider, actionData }: CardEngineProps) {
   switch (card.type) {
     case 'calendar_added':
     case 'calendar_events':
-      return <CalendarCard content={card.content} metadata={card.metadata} />;
+      return <CalendarCard content={card.content} metadata={card.metadata} actionStatus={actionStatus} actionError={actionError} actionProvider={actionProvider} actionData={actionData} />;
 
     case 'weather':
       return <WeatherCard content={card.content} metadata={card.metadata} />;
 
     case 'email_sent':
     case 'email_read':
-      return <EmailCard content={card.content} metadata={card.metadata} />;
+      return <EmailCard content={card.content} metadata={card.metadata} actionStatus={actionStatus} actionError={actionError} actionProvider={actionProvider} />;
 
     case 'timer':
       return <TimerCard content={card.content} metadata={card.metadata} />;
@@ -78,6 +90,30 @@ export function CardEngine({ card }: CardEngineProps) {
 
     case 'news':
       return <NewsCard content={card.content} metadata={card.metadata} />;
+
+    case 'navigation':
+      return <NavigationCard content={card.content} metadata={card.metadata} />;
+
+    case 'sports':
+      return <SportsCard content={card.content} metadata={card.metadata} />;
+
+    case 'places':
+      return <PlacesCard content={card.content} metadata={card.metadata} />;
+
+    case 'flight':
+      return <FlightCard content={card.content} metadata={card.metadata} />;
+
+    case 'package':
+      return <PackageCard content={card.content} metadata={card.metadata} />;
+
+    case 'document':
+      return <DocumentCard content={card.content} metadata={card.metadata} />;
+
+    case 'routine':
+      return <RoutineCard content={card.content} metadata={card.metadata} />;
+
+    case 'health':
+      return <HealthCard content={card.content} metadata={card.metadata} />;
 
     case 'generic':
     default:

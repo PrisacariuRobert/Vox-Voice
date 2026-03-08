@@ -5,6 +5,7 @@ import Animated, {
   withRepeat, withSequence,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { AlarmClockIcon, CheckIcon } from '../Icons';
 
 interface AlarmCardProps {
   content: string;
@@ -47,14 +48,16 @@ export function AlarmCard({ content, metadata }: AlarmCardProps) {
 
   return (
     <Animated.View style={[styles.card, animStyle]}>
-      <Animated.Text style={[styles.bell, bellStyle]}>⏰</Animated.Text>
+      <Animated.View style={[styles.bell, bellStyle]}>
+        <AlarmClockIcon size={40} />
+      </Animated.View>
       <View style={styles.info}>
         <Text style={styles.label}>Alarm Set</Text>
         <Text style={styles.time}>{time}</Text>
         <Text style={styles.sub}>I'll remind you on time</Text>
       </View>
       <View style={styles.checkBadge}>
-        <Text style={styles.check}>✓</Text>
+        <CheckIcon size={16} color="#fff" />
       </View>
     </Animated.View>
   );
@@ -72,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  bell: { fontSize: 40 },
+  bell: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },
   label: {
     fontFamily: 'Syne_500Medium',
@@ -100,10 +103,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.warning,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  check: {
-    fontFamily: 'Syne_700Bold',
-    fontSize: 16,
-    color: '#fff',
   },
 });

@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { StopwatchIcon } from '../Icons';
 import { extractTimerDuration } from '../../lib/card-parser';
 
 interface TimerCardProps {
@@ -67,7 +68,7 @@ export function TimerCard({ content, metadata }: TimerCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>⏱</Text>
+        <StopwatchIcon size={20} />
         <Text style={styles.title}>{remaining === 0 ? 'Timer Done!' : 'Timer Running'}</Text>
       </View>
 
@@ -113,8 +114,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 8,
   },
-  icon: { fontSize: 20, marginRight: 8 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,

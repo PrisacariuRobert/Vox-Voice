@@ -4,6 +4,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { NewspaperIcon } from '../Icons';
 
 interface NewsCardProps {
   content: string;
@@ -38,7 +39,7 @@ export function NewsCard({ content, metadata }: NewsCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>📰</Text>
+        <NewspaperIcon size={20} color={Colors.text} />
         <Text style={styles.title}>Top News</Text>
         <Text style={styles.date}>{timeStr}</Text>
       </View>
@@ -74,7 +75,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  icon: { fontSize: 20 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,

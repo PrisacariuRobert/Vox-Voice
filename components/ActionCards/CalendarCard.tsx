@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,10 +7,16 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { ActionStatus } from '../../types';
+import { CalendarIcon, CheckIcon, ChatIcon } from '../Icons';
 
 interface CalendarCardProps {
   content: string;
   metadata?: Record<string, unknown>;
+  actionStatus?: ActionStatus | null;
+  actionError?: string | null;
+  actionProvider?: string | null;
+  actionData?: Record<string, unknown> | null;
 }
 
 function MiniCalendar() {
@@ -44,7 +50,7 @@ function MiniCalendar() {
   );
 }
 
-export function CalendarCard({ content, metadata }: CalendarCardProps) {
+export function CalendarCard({ content, metadata, actionStatus, actionError, actionProvider, actionData }: CalendarCardProps) {
   const translateY = useSharedValue(200);
   const opacity = useSharedValue(0);
 
@@ -62,11 +68,21 @@ export function CalendarCard({ content, metadata }: CalendarCardProps) {
   const eventName = (metadata?.event_name as string) ?? extractEventName(content);
   const eventTime = (metadata?.event_time as string) ?? extractEventTime(content);
 
+  // Check if this is a Teams meeting with a join link
+  const isTeamsMeeting = actionProvider === 'Zoom';
+  const joinUrl = (actionData?.joinUrl as string) ?? null;
+
   return (
-    <Animated.View style={[styles.card, animStyle]}>
+    <Animated.View style={[styles.card, isTeamsMeeting && styles.teamsCard, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>📅</Text>
-        <Text style={styles.title}>Event Added</Text>
+        {isTeamsMeeting ? (
+          <ChatIcon size={20} color={Colors.accent2} />
+        ) : (
+          <CalendarIcon size={20} color={Colors.accent} />
+        )}
+        <Text style={[styles.title, isTeamsMeeting && styles.teamsTitle]}>
+          {isTeamsMeeting ? 'Zoom Meeting Created' : 'Event Added'}
+        </Text>
       </View>
 
       {eventName ? (
@@ -77,6 +93,37 @@ export function CalendarCard({ content, metadata }: CalendarCardProps) {
       ) : (
         <Text style={styles.content}>{content}</Text>
       )}
+
+      {actionStatus === 'executing' ? (
+        <View style={styles.executingBadge}>
+          <ActivityIndicator size="small" color={Colors.accent} />
+          <Text style={styles.executingText}>
+            {isTeamsMeeting ? 'Creating Zoom meeting...' : 'Creating event...'}
+          </Text>
+        </View>
+      ) : actionStatus === 'error' ? (
+        <View style={styles.errorBadge}>
+          <Text style={styles.errorText}>{actionError ?? 'Failed to create event'}</Text>
+        </View>
+      ) : actionStatus === 'success' ? (
+        <>
+          <View style={styles.successBadge}>
+            <CheckIcon size={12} color={Colors.success} />
+            <Text style={styles.successText}>
+              {actionProvider ? `Added to ${actionProvider}` : 'Event Created'}
+            </Text>
+          </View>
+          {joinUrl ? (
+            <TouchableOpacity
+              style={styles.joinBtn}
+              onPress={() => Linking.openURL(joinUrl)}
+            >
+              <ChatIcon size={16} color="#fff" />
+              <Text style={styles.joinBtnText}>Join Zoom Meeting</Text>
+            </TouchableOpacity>
+          ) : null}
+        </>
+      ) : null}
 
       <MiniCalendar />
     </Animated.View>
@@ -141,9 +188,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
-  icon: { fontSize: 20, marginRight: 8 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,
@@ -167,5 +214,72 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     lineHeight: 22,
+  },
+  executingBadge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.accentDim,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  executingText: {
+    fontFamily: 'Syne_600SemiBold',
+    fontSize: 12,
+    color: Colors.accent,
+  },
+  successBadge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(52,199,89,0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  successText: {
+    fontFamily: 'Syne_600SemiBold',
+    fontSize: 12,
+    color: Colors.success,
+  },
+  errorBadge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,45,85,0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  errorText: {
+    fontFamily: 'Syne_600SemiBold',
+    fontSize: 12,
+    color: Colors.pink,
+  },
+  teamsCard: {
+    borderColor: Colors.accent2Dim,
+  },
+  teamsTitle: {
+    color: Colors.accent2,
+  },
+  joinBtn: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.accent2,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  joinBtnText: {
+    fontFamily: 'Syne_700Bold',
+    fontSize: 14,
+    color: '#fff',
   },
 });

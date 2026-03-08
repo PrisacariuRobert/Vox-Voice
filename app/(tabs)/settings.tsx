@@ -12,8 +12,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/colors';
+
+// Lazy-load native modules
+let AuthSession: typeof import('expo-auth-session') | null = null;
+try { AuthSession = require('expo-auth-session'); } catch { /* needs rebuild */ }
 import { AppSettings } from '../../types';
 import { openClawClient } from '../../lib/openclaw-client';
+import {
+  exchangeCodeForTokens,
+  getMicrosoftDiscovery,
+  getMicrosoftScopes,
+  getMicrosoftUserEmail,
+} from '../../lib/microsoft-auth';
+import {
+  getServerToServerToken,
+  getZoomUserEmail,
+  signOut as zoomSignOut,
+} from '../../lib/zoom-auth';
 import {
   DEFAULT_GATEWAY_URL,
   DEFAULT_AUTH_TOKEN,
@@ -33,7 +48,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   userEmail: '',
   userTimezone: 'Europe/Amsterdam',
   userCalendar: 'apple',
-  userEmailApp: 'gmail',
+  userEmailApp: 'apple',
+  useGpsLocation: true,
   wakePhrases: DEFAULT_WAKE_PHRASES,
   ttsProvider: 'openai',
   openaiTtsVoice: 'nova',
@@ -44,21 +60,75 @@ export const DEFAULT_SETTINGS: AppSettings = {
   whisperApiKey: '',
   sttProvider: 'whisper',
   connectedServices: {},
+  microsoftClientId: '',
+  microsoftAccessToken: '',
+  microsoftRefreshToken: '',
+  microsoftTokenExpiry: 0,
+  microsoftUserEmail: '',
+  // Zoom (Server-to-Server OAuth)
+  zoomAccountId: '',
+  zoomClientId: '',
+  zoomClientSecret: '',
+  zoomAccessToken: '',
+  zoomRefreshToken: '',
+  zoomTokenExpiry: 0,
+  zoomUserEmail: '',
 };
 
-export function buildProfileContext(settings: AppSettings): string {
+export function buildProfileContext(
+  settings: AppSettings,
+  locationStr?: string,
+): string {
   if (!settings.userName) return '';
   const connected = Object.entries(settings.connectedServices ?? {})
     .filter(([, v]) => v)
     .map(([k]) => k)
     .join(', ');
+  const calLabel = settings.userCalendar === 'apple' ? 'Apple Calendar' : settings.userCalendar === 'google' ? 'Google Calendar' : 'Outlook Calendar';
+  const emailLabel = settings.userEmailApp === 'apple' ? 'Apple Mail' : settings.userEmailApp === 'gmail' ? 'Gmail' : 'Outlook';
   const lines = [
     `Name: ${settings.userName}`,
     settings.userEmail ? `Email: ${settings.userEmail}` : null,
     `Timezone: ${settings.userTimezone}`,
-    `Preferred calendar: ${settings.userCalendar === 'apple' ? 'Apple Calendar' : settings.userCalendar === 'google' ? 'Google Calendar' : 'Outlook Calendar'}`,
-    `Preferred email: ${settings.userEmailApp === 'gmail' ? 'Gmail' : settings.userEmailApp === 'apple' ? 'Apple Mail' : 'Outlook'}`,
+    locationStr ? `Location: ${locationStr}` : null,
+    `Preferred calendar: ${calLabel}`,
+    `Preferred email: ${emailLabel}`,
+    settings.microsoftUserEmail ? `Microsoft account: ${settings.microsoftUserEmail} (Outlook email and calendar available)` : null,
+    settings.zoomUserEmail ? `Zoom account: ${settings.zoomUserEmail} (meetings available via Zoom API)` : null,
     connected ? `Connected services (logged in on Mac): ${connected}` : null,
+    '',
+    'CRITICAL — ACTION INSTRUCTIONS (you MUST follow these):',
+    'You are running on a MOBILE app connected to a Mac gateway. You have direct API access to create/edit/delete calendar events and schedule Zoom meetings.',
+    'For CALENDAR and MEETINGS: ALWAYS use [ACTION:] markers. The app will execute them automatically via APIs.',
+    'For EMAIL: Use osascript via the Mac gateway to send emails through Apple Mail. Do NOT use [ACTION:send_email].',
+    'NEVER tell the user to open an app manually. NEVER say "opening Zoom/Outlook/Calendar".',
+    '',
+    'EMAIL — send via osascript (this actually sends the email):',
+    'osascript -e \'tell application "Mail"\nset newMsg to make new outgoing message with properties {subject:"SUBJECT", content:"BODY", visible:false}\ntell newMsg\nmake new to recipient at end of to recipients with properties {address:"EMAIL"}\nend tell\nsend newMsg\nend tell\'',
+    'End with [EMAIL_SENT] after sending.',
+    '',
+    'CALENDAR/MEETINGS — use [ACTION:] markers:',
+    '[ACTION:create_event title="Event Name" startTime="2024-01-15T10:00:00" endTime="2024-01-15T11:00:00" location="Place" attendees="a@b.com"]',
+    '[ACTION:update_event searchTitle="Current Event Name" title="New Title" startTime="2024-01-15T14:00:00" endTime="2024-01-15T15:00:00" location="New Place"]',
+    '[ACTION:delete_event searchTitle="Event Name To Find And Delete"]',
+    '[ACTION:create_meeting meetingSubject="Meeting Name" meetingStartTime="2024-01-15T14:00:00" meetingEndTime="2024-01-15T15:00:00"]',
+    '',
+    'ALARMS — use [ACTION:] markers:',
+    '[ACTION:set_alarm alarmTime="07:00" alarmLabel="Alarm"] — time MUST be HH:MM 24h format',
+    '[ACTION:cancel_alarm] — cancels all active alarms',
+    '',
+    'PHONE CALLS — use [PHONE_CALL:] marker:',
+    '[PHONE_CALL: number="+31612345678"] — opens the phone dialer on the device',
+    '',
+    'NOTES — create via osascript:',
+    'osascript -e \'tell application "Notes" to tell account "iCloud" to make new note at folder "Notes" with properties {name:"Title", body:"<html><body>Content</body></html>"}\'',
+    '',
+    'You MUST include exactly ONE [ACTION:] marker when the user asks to create/edit/delete events, schedule meetings, or set/cancel alarms.',
+    'If unsure about required details (recipient, time, subject), ASK the user first.',
+    'The [ACTION:create_meeting] creates a real Zoom meeting via the Zoom API and returns a join link. Do NOT suggest opening Zoom manually.',
+    'The [ACTION:update_event] searches for an event by searchTitle and updates only the fields you specify. Use for reschedule, rename, move, etc.',
+    'The [ACTION:delete_event] searches for and deletes a calendar event by title. Use it when the user asks to cancel, delete, or remove an event.',
+    'For factual questions, ALWAYS search the web first before answering. Do not make up facts.',
   ].filter(Boolean);
   return lines.join('\n');
 }
@@ -177,10 +247,8 @@ const BUILT_IN_SERVICES = [
 ];
 
 const CONNECTABLE_SERVICES = [
-  { id: 'google',   name: 'Google',           desc: 'Gmail + Google Calendar',   icon: '🔵', macCmd: 'open https://accounts.google.com' },
-  { id: 'zoom',     name: 'Zoom',             desc: 'Schedule & join meetings',   icon: '🟦', macCmd: 'open -a "Zoom" || open https://zoom.us/signin' },
-  { id: 'teams',    name: 'Microsoft Teams',  desc: 'Messages & meetings',        icon: '🟪', macCmd: 'open -a "Microsoft Teams" || open https://login.microsoftonline.com' },
-  { id: 'youtube',  name: 'YouTube',          desc: 'Watch & search videos',      icon: '🔴', macCmd: 'open https://youtube.com' },
+  { id: 'google',   name: 'Google',           desc: 'Gmail + Google Calendar',   color: '#4285F4', macCmd: 'open https://accounts.google.com' },
+  { id: 'youtube',  name: 'YouTube',          desc: 'Watch & search videos',      color: '#FF0000', macCmd: 'open https://youtube.com' },
 ];
 
 function BuiltInServiceRow({ name, description }: { name: string; description: string }) {
@@ -209,14 +277,14 @@ function ConnectableServiceRow({
 }) {
   return (
     <View style={styles.serviceRow}>
-      <View style={[styles.serviceDot, connected ? styles.serviceDotReady : styles.serviceDotOff]} />
+      <View style={[styles.serviceDot, { backgroundColor: service.color }]} />
       <View style={styles.serviceText}>
-        <Text style={styles.serviceName}>{service.icon} {service.name}</Text>
+        <Text style={styles.serviceName}>{service.name}</Text>
         <Text style={styles.serviceDesc}>{service.desc}</Text>
       </View>
       {connected ? (
         <TouchableOpacity onPress={onDisconnect} style={styles.disconnectBtn}>
-          <Text style={styles.disconnectBtnText}>✓ Connected</Text>
+          <Text style={styles.disconnectBtnText}>Connected</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity onPress={onConnect} style={styles.connectBtn}>
@@ -372,6 +440,229 @@ export default function SettingsScreen() {
           value={settings.userEmailApp}
           onChange={(v) => update('userEmailApp', v)}
         />
+        <SegmentedControl
+          label="Use GPS Location"
+          options={[
+            { key: 'on', label: 'On' },
+            { key: 'off', label: 'Off' },
+          ]}
+          value={settings.useGpsLocation ? 'on' : 'off'}
+          onChange={(v) => update('useGpsLocation', v === 'on')}
+        />
+
+        {/* ── Microsoft Account ── */}
+        <Section
+          title="Microsoft Account"
+          subtitle="Sign in with a Microsoft 365 work/school account for Outlook email and calendar."
+        />
+        {settings.microsoftUserEmail ? (
+          <View style={styles.serviceRow}>
+            <View style={[styles.serviceDot, styles.serviceDotReady]} />
+            <View style={styles.serviceText}>
+              <Text style={styles.serviceName}>{settings.microsoftUserEmail}</Text>
+              <Text style={styles.serviceDesc}>Outlook email &amp; calendar</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                update('microsoftAccessToken', '');
+                update('microsoftRefreshToken', '');
+                update('microsoftTokenExpiry', 0);
+                update('microsoftUserEmail', '');
+              }}
+              style={styles.disconnectBtn}
+            >
+              <Text style={styles.disconnectBtnText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Field
+              label="Azure Client ID"
+              value={settings.microsoftClientId}
+              onChangeText={(v) => update('microsoftClientId', v)}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              hint="From Azure Portal → App Registrations"
+            />
+            {settings.microsoftClientId && AuthSession ? (
+              <TouchableOpacity
+                style={styles.redirectUriBtn}
+                onPress={() => {
+                  const uri = AuthSession!.makeRedirectUri({
+                    scheme: 'clawvoice',
+                    path: 'auth',
+                  });
+                  Alert.alert(
+                    'Redirect URI',
+                    `Add this exact URI in Azure Portal → App Registrations → Authentication → Mobile/Desktop redirect URIs:\n\n${uri}`,
+                  );
+                }}
+              >
+                <Text style={styles.redirectUriBtnText}>Show Redirect URI for Azure</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.msSignInBtn, !settings.microsoftClientId && styles.saveBtnDisabled]}
+              onPress={async () => {
+                if (!settings.microsoftClientId) {
+                  Alert.alert('Missing Client ID', 'Enter your Azure Client ID first.');
+                  return;
+                }
+                try {
+                  if (!AuthSession) {
+                    Alert.alert('Not Available', 'Rebuild the app first: npx expo run:ios');
+                    return;
+                  }
+                  const discovery = getMicrosoftDiscovery();
+                  const redirectUri = AuthSession.makeRedirectUri({
+                    scheme: 'clawvoice',
+                    path: 'auth',
+                  });
+                  console.log('[OAuth] Redirect URI:', redirectUri);
+                  const request = new AuthSession.AuthRequest({
+                    clientId: settings.microsoftClientId,
+                    scopes: getMicrosoftScopes(),
+                    redirectUri,
+                    usePKCE: true,
+                    responseType: AuthSession.ResponseType.Code,
+                  });
+                  await request.makeAuthUrlAsync(discovery);
+                  const result = await request.promptAsync(discovery);
+                  if (result.type === 'success' && result.params.code) {
+                    const tokens = await exchangeCodeForTokens(
+                      result.params.code,
+                      settings.microsoftClientId,
+                      redirectUri,
+                      request.codeVerifier!,
+                    );
+                    const email = await getMicrosoftUserEmail(tokens.accessToken);
+                    const updatedSettings = {
+                      ...settings,
+                      microsoftAccessToken: tokens.accessToken,
+                      microsoftRefreshToken: tokens.refreshToken,
+                      microsoftTokenExpiry: tokens.expiresAt,
+                      microsoftUserEmail: email,
+                    };
+                    setSettings(updatedSettings);
+                    setSaved(false);
+                    // Auto-save so Voice screen picks up the tokens immediately
+                    await saveSettings(updatedSettings);
+                    Alert.alert('Success', `Signed in as ${email}`);
+                  }
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : 'Unknown error';
+                  const uri = AuthSession!.makeRedirectUri({ scheme: 'clawvoice', path: 'auth' });
+                  if (msg.includes('redirect') || msg.includes('invalid_request')) {
+                    Alert.alert(
+                      'Redirect URI Mismatch',
+                      `Azure rejected the redirect URI. In Azure Portal → App Registrations → Authentication, add this as a "Mobile and desktop" redirect URI:\n\n${uri}`,
+                    );
+                  } else {
+                    Alert.alert('Sign-in Failed', msg);
+                  }
+                }
+              }}
+              disabled={!settings.microsoftClientId}
+            >
+              <Text style={styles.saveBtnText}>Sign in with Microsoft</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* ── Zoom Account ── */}
+        <Section
+          title="Zoom Account"
+          subtitle="Create a Server-to-Server OAuth app in Zoom Marketplace to enable meeting creation."
+        />
+        {settings.zoomUserEmail ? (
+          <View style={styles.serviceRow}>
+            <View style={[styles.serviceDot, { backgroundColor: '#2D8CFF' }]} />
+            <View style={styles.serviceText}>
+              <Text style={styles.serviceName}>{settings.zoomUserEmail}</Text>
+              <Text style={styles.serviceDesc}>Zoom meetings</Text>
+            </View>
+            <TouchableOpacity
+              onPress={async () => {
+                await zoomSignOut();
+                update('zoomAccessToken', '');
+                update('zoomRefreshToken', '');
+                update('zoomTokenExpiry', 0);
+                update('zoomUserEmail', '');
+              }}
+              style={styles.disconnectBtn}
+            >
+              <Text style={styles.disconnectBtnText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Field
+              label="Account ID"
+              value={settings.zoomAccountId}
+              onChangeText={(v) => update('zoomAccountId', v)}
+              placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
+              hint="Zoom Marketplace → Build App → Server-to-Server OAuth → Account ID"
+            />
+            <Field
+              label="Client ID"
+              value={settings.zoomClientId}
+              onChangeText={(v) => update('zoomClientId', v)}
+              placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
+            />
+            <Field
+              label="Client Secret"
+              value={settings.zoomClientSecret}
+              onChangeText={(v) => update('zoomClientSecret', v)}
+              placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
+              secureTextEntry
+            />
+            <TouchableOpacity
+              style={styles.redirectUriBtn}
+              onPress={() => {
+                Alert.alert(
+                  'How to set up Zoom',
+                  '1. Go to marketplace.zoom.us\n2. Click "Build App" → "Server-to-Server OAuth"\n3. Give it a name (e.g. "Claw Voice")\n4. Copy Account ID, Client ID, and Client Secret\n5. Under Scopes, add: meeting:write:admin\n6. Activate the app',
+                );
+              }}
+            >
+              <Text style={styles.redirectUriBtnText}>How to set up Zoom app</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.zoomSignInBtn, (!settings.zoomAccountId || !settings.zoomClientId || !settings.zoomClientSecret) && styles.saveBtnDisabled]}
+              onPress={async () => {
+                if (!settings.zoomAccountId || !settings.zoomClientId || !settings.zoomClientSecret) {
+                  Alert.alert('Missing Credentials', 'Enter your Zoom Account ID, Client ID, and Client Secret.');
+                  return;
+                }
+                try {
+                  const tokens = await getServerToServerToken(
+                    settings.zoomAccountId,
+                    settings.zoomClientId,
+                    settings.zoomClientSecret,
+                  );
+                  const email = await getZoomUserEmail(tokens.accessToken);
+                  const updatedSettings = {
+                    ...settings,
+                    zoomAccessToken: tokens.accessToken,
+                    zoomRefreshToken: '',
+                    zoomTokenExpiry: tokens.expiresAt,
+                    zoomUserEmail: email || settings.userEmail || 'Connected',
+                  };
+                  setSettings(updatedSettings);
+                  setSaved(false);
+                  // Auto-save so Voice screen picks up the tokens immediately
+                  await saveSettings(updatedSettings);
+                  Alert.alert('Success', `Connected to Zoom${email ? ` as ${email}` : ''}!`);
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : 'Unknown error';
+                  Alert.alert('Zoom Connection Failed', `Check your Account ID, Client ID, and Client Secret.\n\n${msg}`);
+                }
+              }}
+              disabled={!settings.zoomAccountId || !settings.zoomClientId || !settings.zoomClientSecret}
+            >
+              <Text style={styles.saveBtnText}>Connect Zoom</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         {/* ── What Claw Can Do ── */}
         <Section
@@ -527,7 +818,7 @@ export default function SettingsScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveBtnText}>{saved ? '✓ Saved' : 'Save Settings'}</Text>
+            <Text style={styles.saveBtnText}>{saved ? 'Saved' : 'Save Settings'}</Text>
           )}
         </TouchableOpacity>
 
@@ -645,6 +936,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtnDisabled: { opacity: 0.6 },
+  redirectUriBtn: {
+    marginTop: 4,
+    marginBottom: 4,
+    paddingVertical: 8,
+    alignItems: 'center' as const,
+  },
+  redirectUriBtnText: {
+    fontFamily: 'Syne_500Medium',
+    fontSize: 12,
+    color: Colors.accent,
+    textDecorationLine: 'underline' as const,
+  },
+  msSignInBtn: {
+    marginTop: 8,
+    backgroundColor: '#0078D4',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  zoomSignInBtn: {
+    marginTop: 8,
+    backgroundColor: '#2D8CFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
   saveBtnText: { fontFamily: 'Syne_700Bold', fontSize: 16, color: '#fff' },
   bottomPad: { height: 40 },
 });

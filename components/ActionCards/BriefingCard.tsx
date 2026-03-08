@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { CloudSunIcon, CalendarIcon, MailIcon } from '../Icons';
 
 interface BriefingCardProps {
   content: string;
@@ -14,7 +15,7 @@ interface BriefingCardProps {
 }
 
 interface BriefingSection {
-  icon: string;
+  icon: React.ReactElement;
   label: string;
   value: string;
 }
@@ -44,7 +45,7 @@ export function BriefingCard({ content, metadata }: BriefingCardProps) {
     <Animated.View style={[styles.card, animStyle]}>
       {/* Gradient header */}
       <View style={styles.headerBg}>
-        <Text style={styles.greeting}>{greeting} ☀️</Text>
+        <Text style={styles.greeting}>{greeting}</Text>
         <Text style={styles.date}>{dateStr}</Text>
         <Text style={styles.time}>{timeStr}</Text>
       </View>
@@ -52,7 +53,7 @@ export function BriefingCard({ content, metadata }: BriefingCardProps) {
       <ScrollView style={styles.sections} scrollEnabled={false}>
         {sections.map((s, i) => (
           <View key={i} style={styles.section}>
-            <Text style={styles.sectionIcon}>{s.icon}</Text>
+            <View style={styles.sectionIcon}>{s.icon}</View>
             <View style={styles.sectionContent}>
               <Text style={styles.sectionLabel}>{s.label}</Text>
               <Text style={styles.sectionValue} numberOfLines={2}>{s.value}</Text>
@@ -75,21 +76,21 @@ function parseBriefingSections(text: string): BriefingSection[] {
   const weatherMatch = text.match(/(?:weather|temperature|it'?s?).*?(\d+[°℃℉][^.\n]*)/i)
     || text.match(/(\d+[°℃℉][^.\n]+)/);
   if (weatherMatch) {
-    sections.push({ icon: '🌤', label: 'Weather', value: weatherMatch[1].trim() });
+    sections.push({ icon: <CloudSunIcon size={22} />, label: 'Weather', value: weatherMatch[1].trim() });
   }
 
   // Calendar
   const calMatch = text.match(/(?:calendar|event|meeting|appointment)[^.\n]*(\d+)[^.\n]*/i)
     || text.match(/(\d+)\s+(?:event|meeting|appointment)/i);
   if (calMatch) {
-    sections.push({ icon: '📅', label: 'Today', value: calMatch[0].replace(/^.*?(\d)/, '$1').trim().slice(0, 80) });
+    sections.push({ icon: <CalendarIcon size={22} />, label: 'Today', value: calMatch[0].replace(/^.*?(\d)/, '$1').trim().slice(0, 80) });
   }
 
   // Emails
   const emailMatch = text.match(/(\d+)\s+(?:new\s+)?(?:unread\s+)?email/i)
     || text.match(/email[^.\n]*(\d+)/i);
   if (emailMatch) {
-    sections.push({ icon: '📧', label: 'Emails', value: emailMatch[0].trim().slice(0, 80) });
+    sections.push({ icon: <MailIcon size={22} />, label: 'Emails', value: emailMatch[0].trim().slice(0, 80) });
   }
 
   return sections.slice(0, 4);
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  sectionIcon: { fontSize: 22, marginTop: 1 },
+  sectionIcon: { width: 22, height: 22, alignItems: 'center' as const, marginTop: 1 },
   sectionContent: { flex: 1 },
   sectionLabel: {
     fontFamily: 'Syne_600SemiBold',

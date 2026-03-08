@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
-import { kokoroSpeak } from '../lib/kokoro-tts';
+import { kokoroSpeak, stripMarkdown } from '../lib/kokoro-tts';
 import { googleSpeak } from '../lib/google-tts';
 import { openAiSpeak, OpenAIVoice } from '../lib/openai-tts';
 import { AppSettings } from '../types';
@@ -27,6 +27,13 @@ export function useTTS(settings: Pick<AppSettings, 'ttsProvider' | 'openaiTtsVoi
       stop();
       setState('speaking');
 
+      // Strip action markers and markdown before sending to any TTS provider
+      const cleanText = stripMarkdown(text);
+      if (!cleanText) {
+        setState('idle');
+        return;
+      }
+
       // Play through speaker even in silent mode
       await setAudioModeAsync({ playsInSilentMode: true });
 
@@ -35,19 +42,19 @@ export function useTTS(settings: Pick<AppSettings, 'ttsProvider' | 'openaiTtsVoi
 
         if (settings.ttsProvider === 'openai') {
           player = await openAiSpeak(
-            text,
+            cleanText,
             settings.whisperApiKey,
             (settings.openaiTtsVoice as OpenAIVoice) || 'nova'
           );
         } else if (settings.ttsProvider === 'kokoro') {
           player = await kokoroSpeak(
-            text,
+            cleanText,
             settings.kokoroUrl,
             settings.kokoroApiKey,
             settings.kokoroVoice
           );
         } else if (settings.ttsProvider === 'google') {
-          player = await googleSpeak(text, settings.googleTtsApiKey);
+          player = await googleSpeak(cleanText, settings.googleTtsApiKey);
         }
 
         if (player) {
@@ -67,7 +74,7 @@ export function useTTS(settings: Pick<AppSettings, 'ttsProvider' | 'openaiTtsVoi
       }
 
       // Device TTS fallback
-      Speech.speak(text, {
+      Speech.speak(cleanText, {
         rate: 1.05,
         onDone: () => setState('idle'),
         onError: () => setState('idle'),

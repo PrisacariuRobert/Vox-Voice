@@ -3,6 +3,11 @@ import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 // Strip markdown formatting before sending to TTS
 export function stripMarkdown(text: string): string {
   return text
+    // Strip action markers: [ACTION:type key="value" ...]
+    .replace(/\[ACTION:\w+(?:\s+\w+="[^"]*")*\]/gi, '')
+    // Strip all bracket markers: [BRIEFING], [CALENDAR_EVENTS], [NOW_PLAYING: ...], etc.
+    .replace(/\[[A-Z_]+(?::[^\]]+)?\]/g, '')
+    // Strip markdown formatting
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
     .replace(/#{1,6}\s/g, '')

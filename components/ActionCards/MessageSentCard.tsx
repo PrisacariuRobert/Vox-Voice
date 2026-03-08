@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { ChatIcon, CheckIcon } from '../Icons';
 
 interface MessageSentCardProps {
   content: string;
@@ -34,7 +35,7 @@ export function MessageSentCard({ content, metadata }: MessageSentCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>💬</Text>
+        <ChatIcon size={20} color="#007AFF" />
         <Text style={styles.title}>Message Sent</Text>
       </View>
 
@@ -56,7 +57,10 @@ export function MessageSentCard({ content, metadata }: MessageSentCardProps) {
         </Text>
       </View>
 
-      <Text style={styles.sent}>✓ Sent via iMessage</Text>
+      <View style={styles.sentRow}>
+        <CheckIcon size={12} color={Colors.textTertiary} />
+        <Text style={styles.sent}>Sent via iMessage</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -83,9 +87,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 14,
   },
-  icon: { fontSize: 20, marginRight: 8 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,
@@ -135,10 +139,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     lineHeight: 20,
   },
+  sentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+  },
   sent: {
     fontFamily: 'Syne_400Regular',
     fontSize: 12,
     color: Colors.textTertiary,
-    textAlign: 'right',
   },
 });

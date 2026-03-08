@@ -1,4 +1,4 @@
-import { CardData, CardType, PhotoQuery, NowPlayingData, ContactData } from '../types';
+import { CardData, CardType, PhotoQuery, NowPlayingData, ContactData, ActionPayload, ActionType } from '../types';
 
 // ─── Builders ────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,59 @@ export function parseResponse(
 ): CardData {
   const lower = content.toLowerCase();
 
-  // ── Explicit markers from AI (highest priority) ───────────────────────────
+  // ── Action markers — executable actions (highest priority) ────────────────
+
+  const actionMatch = content.match(/\[ACTION:(\w+)((?:\s+\w+="[^"]*")*)\]/i);
+  if (actionMatch) {
+    const actionType = actionMatch[1] as ActionType;
+    const params = parseMarkerParams(actionMatch[2]);
+    const cleanContent = stripMarkers(content);
+
+    // Parse attendees as array if present
+    const attendees = params.attendees
+      ? params.attendees.split(',').map((a: string) => a.trim()).filter(Boolean)
+      : undefined;
+
+    const action: ActionPayload = {
+      actionType,
+      to: params.to,
+      cc: params.cc,
+      subject: params.subject,
+      body: params.body,
+      title: params.title,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      location: params.location,
+      attendees,
+      meetingSubject: params.meetingSubject,
+      meetingStartTime: params.meetingStartTime,
+      meetingEndTime: params.meetingEndTime,
+      eventId: params.eventId,
+      searchTitle: params.searchTitle,
+      alarmTime: params.alarmTime,
+      alarmLabel: params.alarmLabel,
+      sendTo: params.sendTo,
+    };
+
+    // Map action type → card type
+    const cardTypeMap: Record<string, CardType> = {
+      send_email: 'email_sent',
+      create_event: 'calendar_added',
+      create_meeting: 'calendar_added',
+      delete_event: 'calendar_added',
+      update_event: 'calendar_added',
+      set_alarm: 'alarm',
+      cancel_alarm: 'alarm',
+    };
+
+    return buildCard(
+      cardTypeMap[actionType] ?? 'generic',
+      cleanContent,
+      { ...metadata, action },
+    );
+  }
+
+  // ── Explicit markers from AI ──────────────────────────────────────────────
 
   // [EMAIL_SENT]
   if (/\[EMAIL_SENT\]/i.test(content)) {
@@ -104,6 +156,18 @@ export function parseResponse(
     return buildCard('stocks', stripMarkers(content), metadata);
   }
 
+  // [PHONE_CALL: number="+31612345678"]
+  const phoneMatch = content.match(/\[PHONE_CALL:([^\]]*)\]/i);
+  if (phoneMatch) {
+    const params = parseMarkerParams(phoneMatch[1]);
+    return buildCard('system_control', stripMarkers(content), { ...metadata, phoneNumber: params.number, action: 'phone_call' });
+  }
+
+  // [EMAIL_DRAFT_SAVED]
+  if (/\[EMAIL_DRAFT_SAVED\]/i.test(content)) {
+    return buildCard('email_sent', stripMarkers(content), { ...metadata, isDraft: true });
+  }
+
   // [ALARM: time="7:00 AM"]
   const alarmMatch = content.match(/\[ALARM:([^\]]*)\]/i);
   if (alarmMatch) {
@@ -135,11 +199,76 @@ export function parseResponse(
     return buildCard('contact', stripMarkers(content), { ...metadata, contact });
   }
 
-  // ── Photos marker ─────────────────────────────────────────────────────────
+  // ── Photos markers ────────────────────────────────────────────────────────
+  // [PHOTO_SHOW: caption="...", person="Name"] — hero display for single photo
+  const photoShowMarker = content.match(/\[PHOTO_SHOW(?::([^\]]*))?\]/i);
+  if (photoShowMarker) {
+    const params = photoShowMarker[1] ? parseMarkerParams(photoShowMarker[1]) : {};
+    const photoQuery: PhotoQuery = { limit: 1 };
+    if (params.person) photoQuery.personName = params.person;
+    return buildCard('photos', stripMarkers(content), { ...metadata, photoQuery, caption: params.caption });
+  }
+
   const photoMarker = content.match(/\[PHOTO_QUERY:([^\]]*)\]/i);
   if (photoMarker) {
     const query = parsePhotoQuery(photoMarker[1]);
     return buildCard('photos', content.replace(/\[PHOTO_QUERY:[^\]]*\]/gi, '').trim(), { ...metadata, photoQuery: query });
+  }
+
+  // ── Navigation marker ──────────────────────────────────────────────────────
+  const navMarker = content.match(/\[NAVIGATE(?::([^\]]*))?\]/i);
+  if (navMarker) {
+    const params = navMarker[1] ? parseMarkerParams(navMarker[1]) : {};
+    return buildCard('navigation', stripMarkers(content), { ...metadata, destination: params.destination, eta: params.eta, distance: params.distance });
+  }
+
+  // ── Sports / F1 marker ────────────────────────────────────────────────────
+  const sportsMarker = content.match(/\[(?:SPORTS|F1)(?::([^\]]*))?\]/i);
+  if (sportsMarker) {
+    const params = sportsMarker[1] ? parseMarkerParams(sportsMarker[1]) : {};
+    return buildCard('sports', stripMarkers(content), { ...metadata, ...params });
+  }
+
+  // ── Places marker ─────────────────────────────────────────────────────────
+  const placesMarker = content.match(/\[PLACES(?::([^\]]*))?\]/i);
+  if (placesMarker) {
+    const params = placesMarker[1] ? parseMarkerParams(placesMarker[1]) : {};
+    return buildCard('places', stripMarkers(content), { ...metadata, ...params });
+  }
+
+  // ── Flight marker ─────────────────────────────────────────────────────────
+  const flightMarker = content.match(/\[FLIGHT(?::([^\]]*))?\]/i);
+  if (flightMarker) {
+    const params = flightMarker[1] ? parseMarkerParams(flightMarker[1]) : {};
+    return buildCard('flight', stripMarkers(content), { ...metadata, ...params });
+  }
+
+  // ── Package marker ────────────────────────────────────────────────────────
+  const packageMarker = content.match(/\[PACKAGE(?::([^\]]*))?\]/i);
+  if (packageMarker) {
+    const params = packageMarker[1] ? parseMarkerParams(packageMarker[1]) : {};
+    return buildCard('package', stripMarkers(content), { ...metadata, ...params });
+  }
+
+  // ── Document marker ───────────────────────────────────────────────────────
+  const docMarker = content.match(/\[DOCUMENT(?::([^\]]*))?\]/i);
+  if (docMarker) {
+    const params = docMarker[1] ? parseMarkerParams(docMarker[1]) : {};
+    return buildCard('document', stripMarkers(content), { ...metadata, ...params });
+  }
+
+  // ── Routine marker ────────────────────────────────────────────────────────
+  const routineMarker = content.match(/\[ROUTINE(?::([^\]]*))?\]/i);
+  if (routineMarker) {
+    const params = routineMarker[1] ? parseMarkerParams(routineMarker[1]) : {};
+    return buildCard('routine', stripMarkers(content), { ...metadata, ...params });
+  }
+
+  // ── Health marker ─────────────────────────────────────────────────────────
+  const healthMarker = content.match(/\[HEALTH(?::([^\]]*))?\]/i);
+  if (healthMarker) {
+    const params = healthMarker[1] ? parseMarkerParams(healthMarker[1]) : {};
+    return buildCard('health', stripMarkers(content), { ...metadata, ...params });
   }
 
   // ── Priority: explicit tool metadata from OpenClaw ────────────────────────
@@ -202,6 +331,33 @@ export function parseResponse(
   if (/(top news|headlines|breaking news|latest news|news today)/.test(lower)) {
     return buildCard('news', content, metadata);
   }
+  if (/(navigat.*to|directions.*to|route.*to|eta.*min|driving.*to|opening.*apple.*maps.*direction)/i.test(lower)) {
+    return buildCard('navigation', content, metadata);
+  }
+  if (/(f1.*standing|formula.*1|grand.*prix|race.*result|driver.*champion|constructor.*standing|next.*race)/i.test(lower)) {
+    return buildCard('sports', content, { ...metadata, type: 'f1' });
+  }
+  if (/(score.*\d|match.*result|\d\s*-\s*\d|final.*score|halftime|full.*time)/i.test(lower)) {
+    return buildCard('sports', content, metadata);
+  }
+  if (/(nearby|restaurant.*near|places.*near|found.*places|here.*places|coffee.*near|shop.*near)/i.test(lower)) {
+    return buildCard('places', content, metadata);
+  }
+  if (/(flight.*status|flight.*[A-Z]{2}\d|depart.*arriv|gate.*\w\d|boarding|in.*air|landed)/i.test(lower)) {
+    return buildCard('flight', content, metadata);
+  }
+  if (/(package.*track|tracking.*number|in.*transit|out.*delivery|shipment|carrier.*\w)/i.test(lower)) {
+    return buildCard('package', content, metadata);
+  }
+  if (/(document.*summar|file.*found|pdf.*summar|search.*found.*file|here.*document)/i.test(lower)) {
+    return buildCard('document', content, metadata);
+  }
+  if (/(routine.*complet|routine.*running|step.*done|leaving.*home.*routine|bedtime.*routine|morning.*routine)/i.test(lower)) {
+    return buildCard('routine', content, metadata);
+  }
+  if (/(steps.*today|heart.*rate|bpm|sleep.*hour|calories.*burn|health.*data|workout.*min)/i.test(lower)) {
+    return buildCard('health', content, metadata);
+  }
 
   return buildCard('generic', content, metadata);
 }
@@ -213,9 +369,13 @@ export function parsePhotoQuery(params: string): PhotoQuery {
   const fromMatch = params.match(/from=(\d{4}-\d{2}-\d{2})/i);
   const toMatch = params.match(/to=(\d{4}-\d{2}-\d{2})/i);
   const limitMatch = params.match(/limit=(\d+)/i);
+  const personMatch = params.match(/person="([^"]+)"/i);
+  const typeMatch = params.match(/searchType="([^"]+)"/i);
   if (fromMatch) query.from = new Date(fromMatch[1]).getTime();
   if (toMatch) query.to = new Date(toMatch[1] + 'T23:59:59').getTime();
   if (limitMatch) query.limit = parseInt(limitMatch[1]);
+  if (personMatch) query.personName = personMatch[1];
+  if (typeMatch) query.searchType = typeMatch[1] as PhotoQuery['searchType'];
   if (!query.limit) query.limit = 20;
   return query;
 }

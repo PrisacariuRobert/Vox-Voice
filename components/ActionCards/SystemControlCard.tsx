@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -8,42 +8,55 @@ import Animated, {
   withSequence,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import {
+  MoonIcon,
+  SunIcon,
+  VolumeIcon,
+  TargetIcon,
+  LightbulbIcon,
+  CameraIcon,
+  BatteryIcon,
+  WifiIcon,
+  LockIcon,
+  GearIcon,
+  CheckIcon,
+} from '../Icons';
 
 interface SystemControlCardProps {
   content: string;
   metadata?: Record<string, unknown>;
 }
 
-function detectAction(content: string): { icon: string; label: string; detail: string } {
+function detectAction(content: string): { icon: React.ReactElement; label: string; detail: string } {
   const lower = content.toLowerCase();
 
   if (/dark mode|light mode|appearance/.test(lower)) {
     const isDark = /dark mode on|enabled dark|switched.*dark/.test(lower);
-    return { icon: isDark ? '🌙' : '☀️', label: isDark ? 'Dark Mode On' : 'Light Mode On', detail: content.slice(0, 80) };
+    return { icon: isDark ? <MoonIcon size={26} color="#5856D6" /> : <SunIcon size={26} color="#F5A623" />, label: isDark ? 'Dark Mode On' : 'Light Mode On', detail: content.slice(0, 80) };
   }
   if (/volume|muted|unmuted/.test(lower)) {
     const vol = content.match(/\d+%|\d+ volume/)?.[0];
-    return { icon: '🔊', label: 'Volume', detail: vol ?? content.slice(0, 80) };
+    return { icon: <VolumeIcon size={26} color="#007AFF" />, label: 'Volume', detail: vol ?? content.slice(0, 80) };
   }
   if (/do not disturb|focus|dnd/.test(lower)) {
-    return { icon: '🎯', label: 'Focus Mode', detail: content.slice(0, 80) };
+    return { icon: <TargetIcon size={26} color="#FF2D55" />, label: 'Focus Mode', detail: content.slice(0, 80) };
   }
   if (/brightness/.test(lower)) {
-    return { icon: '💡', label: 'Brightness', detail: content.slice(0, 80) };
+    return { icon: <LightbulbIcon size={26} color="#F5A623" />, label: 'Brightness', detail: content.slice(0, 80) };
   }
   if (/screenshot/.test(lower)) {
-    return { icon: '📸', label: 'Screenshot', detail: content.slice(0, 80) };
+    return { icon: <CameraIcon size={26} color="#007AFF" />, label: 'Screenshot', detail: content.slice(0, 80) };
   }
   if (/battery/.test(lower)) {
-    return { icon: '🔋', label: 'Battery', detail: content.slice(0, 80) };
+    return { icon: <BatteryIcon size={26} color="#34C759" />, label: 'Battery', detail: content.slice(0, 80) };
   }
   if (/wi-fi|wifi|network/.test(lower)) {
-    return { icon: '📶', label: 'Network', detail: content.slice(0, 80) };
+    return { icon: <WifiIcon size={26} color="#007AFF" />, label: 'Network', detail: content.slice(0, 80) };
   }
   if (/lock/.test(lower)) {
-    return { icon: '🔒', label: 'Screen Lock', detail: content.slice(0, 80) };
+    return { icon: <LockIcon size={26} color="#34C759" />, label: 'Screen Lock', detail: content.slice(0, 80) };
   }
-  return { icon: '⚙️', label: 'System', detail: content.slice(0, 80) };
+  return { icon: <GearIcon size={26} color="#8E8E93" />, label: 'System', detail: content.slice(0, 80) };
 }
 
 export function SystemControlCard({ content, metadata }: SystemControlCardProps) {
@@ -67,14 +80,14 @@ export function SystemControlCard({ content, metadata }: SystemControlCardProps)
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.iconCircle}>
-        <Text style={styles.icon}>{icon}</Text>
+        <View style={styles.icon}>{icon}</View>
       </View>
       <View style={styles.info}>
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.detail} numberOfLines={2}>{detail}</Text>
       </View>
       <View style={styles.checkBadge}>
-        <Text style={styles.check}>✓</Text>
+        <CheckIcon size={14} color="#fff" />
       </View>
     </Animated.View>
   );
@@ -100,7 +113,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: { fontSize: 26 },
+  icon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1 },
   label: {
     fontFamily: 'Syne_700Bold',
@@ -121,10 +137,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  check: {
-    fontFamily: 'Syne_700Bold',
-    fontSize: 14,
-    color: '#fff',
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { NowPlayingData } from '../../types';
+import { MusicNoteIcon, MicrophoneIcon } from '../Icons';
 
 interface NowPlayingCardProps {
   content: string;
@@ -61,8 +62,8 @@ export function NowPlayingCard({ content, metadata }: NowPlayingCardProps) {
   // Source-specific theming — Apple Music (red) or Podcasts (accent blue)
   const accentColor = isPodcasts ? Colors.accent : '#fa243c';
   const accentDim   = isPodcasts ? Colors.accentDim : 'rgba(250,36,60,0.25)';
-  const badgeLabel  = isPodcasts ? '🎙 Podcasts' : '♪ Apple Music';
-  const artIcon     = isPodcasts ? '🎙' : '🎵';
+  const badgeLabel  = isPodcasts ? 'Podcasts' : 'Apple Music';
+  const ArtIcon     = isPodcasts ? MicrophoneIcon : MusicNoteIcon;
 
   const title  = np?.title  ?? extractFromContent(content, 'title');
   const artist = np?.artist ?? extractFromContent(content, 'artist');
@@ -72,7 +73,9 @@ export function NowPlayingCard({ content, metadata }: NowPlayingCardProps) {
     <Animated.View style={[styles.card, { borderColor: accentDim }, animStyle]}>
       <View style={styles.artContainer}>
         <View style={[styles.art, { backgroundColor: `${accentColor}22` }]}>
-          <Text style={styles.artIcon}>{artIcon}</Text>
+          <View style={styles.artIcon}>
+            <ArtIcon size={28} color={accentColor} />
+          </View>
         </View>
         <MusicBars color={accentColor} />
       </View>
@@ -145,7 +148,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  artIcon: { fontSize: 28 },
+  artIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1 },
   header: {
     flexDirection: 'row',

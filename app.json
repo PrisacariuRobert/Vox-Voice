@@ -14,9 +14,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "infoPlistEntries": {
+      "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "Allow Claw to use speech recognition for voice commands.",
-        "NSMicrophoneUsageDescription": "Allow Claw to use your microphone for voice commands."
+        "NSMicrophoneUsageDescription": "Allow Claw to use your microphone for voice commands.",
+        "NSLocationWhenInUseUsageDescription": "Allow Claw to use your location for weather and local information.",
+        "NSCalendarsFullAccessUsageDescription": "Allow Claw to create calendar events for you.",
+        "NSCalendarsUsageDescription": "Allow Claw to create calendar events for you.",
+        "NSRemindersFullAccessUsageDescription": "Allow Claw to access reminders.",
+        "NSRemindersUsageDescription": "Allow Claw to access reminders."
       },
       "bundleIdentifier": "com.roberto.clawvoice"
     },
@@ -54,7 +59,23 @@
           "savePhotosPermission": "Allow Claw to save photos.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Claw to use your location for weather and local information."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Claw to create calendar events for you.",
+          "remindersPermission": "Allow Claw to access reminders."
+        }
+      ],
+      "expo-mail-composer",
+      "expo-web-browser",
+      "expo-image"
     ]
   }
 }

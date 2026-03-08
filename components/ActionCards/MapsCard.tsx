@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { MapIcon, MapPinIcon } from '../Icons';
 
 interface MapsCardProps {
   content: string;
@@ -39,13 +40,13 @@ export function MapsCard({ content, metadata }: MapsCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapEmoji}>🗺</Text>
+        <MapIcon size={40} color="rgba(52,199,89,0.6)" />
         <View style={styles.pin} />
       </View>
 
       <View style={styles.info}>
         <View style={styles.header}>
-          <Text style={styles.icon}>📍</Text>
+          <MapPinIcon size={18} />
           <Text style={styles.title}>Navigation</Text>
         </View>
 
@@ -84,7 +85,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mapEmoji: { fontSize: 40, opacity: 0.6 },
   pin: {
     position: 'absolute',
     width: 12,
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    gap: 6,
   },
-  icon: { fontSize: 18, marginRight: 6 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,

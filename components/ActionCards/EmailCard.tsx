@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,10 +7,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { ActionStatus } from '../../types';
+import { SendIcon, InboxIcon, CheckIcon } from '../Icons';
 
 interface EmailCardProps {
   content: string;
   metadata?: Record<string, unknown>;
+  actionStatus?: ActionStatus | null;
+  actionError?: string | null;
+  actionProvider?: string | null;
 }
 
 interface ParsedEmail {
@@ -44,7 +49,7 @@ function isSentEmail(content: string): boolean {
   return /email sent|sent.*email|sent.*to|delivered|message.*sent/i.test(content);
 }
 
-export function EmailCard({ content, metadata }: EmailCardProps) {
+export function EmailCard({ content, metadata, actionStatus, actionError, actionProvider }: EmailCardProps) {
   const translateY = useSharedValue(200);
   const opacity = useSharedValue(0);
 
@@ -67,7 +72,7 @@ export function EmailCard({ content, metadata }: EmailCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>{isSent ? '📤' : '📬'}</Text>
+        {isSent ? <SendIcon size={20} /> : <InboxIcon size={20} />}
         <Text style={styles.title}>{isSent ? 'Email Sent' : 'Inbox'}</Text>
         {!isSent && emailList.length > 0 && (
           <View style={styles.countBadge}>
@@ -93,9 +98,25 @@ export function EmailCard({ content, metadata }: EmailCardProps) {
           {!to && !subject && (
             <Text style={styles.content}>{content}</Text>
           )}
-          <View style={styles.sentBadge}>
-            <Text style={styles.sentText}>✓ Delivered</Text>
-          </View>
+          {actionStatus === 'executing' ? (
+            <View style={styles.executingBadge}>
+              <ActivityIndicator size="small" color={Colors.accent} />
+              <Text style={styles.executingText}>Sending...</Text>
+            </View>
+          ) : actionStatus === 'error' ? (
+            <View style={styles.errorBadge}>
+              <Text style={styles.errorText}>{actionError ?? 'Failed to send'}</Text>
+            </View>
+          ) : (
+            <View style={styles.sentBadge}>
+              <CheckIcon size={12} color={Colors.success} />
+              <Text style={styles.sentText}>
+                {actionStatus === 'success' && actionProvider
+                  ? `Sent via ${actionProvider}`
+                  : 'Delivered'}
+              </Text>
+            </View>
+          )}
         </>
       )}
 
@@ -141,7 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  icon: { fontSize: 20 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,
@@ -187,6 +207,9 @@ const styles = StyleSheet.create({
   sentBadge: {
     marginTop: 10,
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: Colors.successDim,
     borderRadius: 8,
     paddingHorizontal: 10,
@@ -196,6 +219,35 @@ const styles = StyleSheet.create({
     fontFamily: 'Syne_600SemiBold',
     fontSize: 12,
     color: Colors.success,
+  },
+  executingBadge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.accentDim,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  executingText: {
+    fontFamily: 'Syne_600SemiBold',
+    fontSize: 12,
+    color: Colors.accent,
+  },
+  errorBadge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,45,85,0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  errorText: {
+    fontFamily: 'Syne_600SemiBold',
+    fontSize: 12,
+    color: Colors.pink,
   },
   emailList: { maxHeight: 300 },
   emailItem: {

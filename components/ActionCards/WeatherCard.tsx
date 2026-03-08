@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -8,24 +8,35 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { extractWeatherData } from '../../lib/card-parser';
+import {
+  SunIcon,
+  CloudIcon,
+  CloudSunIcon,
+  CloudRainIcon,
+  SnowflakeIcon,
+  ThunderstormIcon,
+  FogIcon,
+  WindIcon,
+  DropletIcon,
+} from '../Icons';
 
 interface WeatherCardProps {
   content: string;
   metadata?: Record<string, unknown>;
 }
 
-function getConditionEmoji(condition?: string): string {
-  if (!condition) return '🌤';
+function getConditionIcon(condition?: string): React.ReactElement {
+  if (!condition) return <CloudSunIcon size={36} />;
   const c = condition.toLowerCase();
-  if (c.includes('sun') || c.includes('clear')) return '☀️';
-  if (c.includes('partly') || c.includes('partly cloudy')) return '⛅';
-  if (c.includes('cloud')) return '☁️';
-  if (c.includes('rain') || c.includes('shower')) return '🌧';
-  if (c.includes('snow')) return '❄️';
-  if (c.includes('thunder') || c.includes('storm')) return '⛈';
-  if (c.includes('fog') || c.includes('mist')) return '🌫';
-  if (c.includes('wind')) return '💨';
-  return '🌤';
+  if (c.includes('sun') || c.includes('clear')) return <SunIcon size={36} />;
+  if (c.includes('partly') || c.includes('partly cloudy')) return <CloudSunIcon size={36} />;
+  if (c.includes('cloud')) return <CloudIcon size={36} />;
+  if (c.includes('rain') || c.includes('shower')) return <CloudRainIcon size={36} />;
+  if (c.includes('snow')) return <SnowflakeIcon size={36} />;
+  if (c.includes('thunder') || c.includes('storm')) return <ThunderstormIcon size={36} />;
+  if (c.includes('fog') || c.includes('mist')) return <FogIcon size={36} />;
+  if (c.includes('wind')) return <WindIcon size={36} />;
+  return <CloudSunIcon size={36} />;
 }
 
 function getGradientColor(condition?: string): string {
@@ -53,7 +64,7 @@ export function WeatherCard({ content, metadata }: WeatherCardProps) {
   }));
 
   const weather = extractWeatherData(content, metadata);
-  const emoji = getConditionEmoji(weather.condition);
+  const icon = getConditionIcon(weather.condition);
   const bgColor = getGradientColor(weather.condition);
 
   return (
@@ -63,7 +74,7 @@ export function WeatherCard({ content, metadata }: WeatherCardProps) {
           <Text style={styles.city}>{weather.city ?? 'Current Location'}</Text>
           <Text style={styles.condition}>{weather.condition ?? 'Checking...'}</Text>
         </View>
-        <Text style={styles.conditionEmoji}>{emoji}</Text>
+        <View style={styles.conditionIcon}>{icon}</View>
       </View>
 
       <Text style={styles.temp}>{weather.temp ?? '—'}</Text>
@@ -84,7 +95,10 @@ export function WeatherCard({ content, metadata }: WeatherCardProps) {
         {weather.humidity && (
           <View style={styles.stat}>
             <Text style={styles.statLabel}>Humidity</Text>
-            <Text style={styles.statValue}>💧 {weather.humidity}</Text>
+            <View style={styles.humidityValue}>
+              <DropletIcon size={14} color={Colors.textSecondary} />
+              <Text style={styles.statValue}> {weather.humidity}</Text>
+            </View>
           </View>
         )}
       </View>
@@ -121,8 +135,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
   },
-  conditionEmoji: {
-    fontSize: 36,
+  conditionIcon: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   temp: {
     fontFamily: 'Syne_800ExtraBold',
@@ -145,6 +162,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Syne_600SemiBold',
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  humidityValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   fallbackText: {
     fontFamily: 'Syne_400Regular',

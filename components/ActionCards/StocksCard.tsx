@@ -4,6 +4,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { ChartIcon } from '../Icons';
 import { StockQuote } from '../../types';
 
 interface StocksCardProps {
@@ -50,7 +51,7 @@ export function StocksCard({ content, metadata }: StocksCardProps) {
   return (
     <Animated.View style={[styles.card, animStyle]}>
       <View style={styles.header}>
-        <Text style={styles.icon}>📈</Text>
+        <ChartIcon size={20} />
         <Text style={styles.title}>Stocks</Text>
         <Text style={styles.time}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
       </View>
@@ -95,7 +96,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  icon: { fontSize: 20 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,

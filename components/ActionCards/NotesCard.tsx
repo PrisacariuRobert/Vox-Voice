@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
+import { NoteIcon, SmartphoneIcon } from '../Icons';
 
 interface NotesCardProps {
   content: string;
@@ -37,7 +38,7 @@ export function NotesCard({ content, metadata }: NotesCardProps) {
       <View style={styles.topBar} />
 
       <View style={styles.header}>
-        <Text style={styles.icon}>📝</Text>
+        <NoteIcon size={18} color={Colors.warning} />
         <Text style={styles.title}>{isCreated ? 'Note Saved' : 'Notes'}</Text>
       </View>
 
@@ -56,7 +57,10 @@ export function NotesCard({ content, metadata }: NotesCardProps) {
         )}
       </ScrollView>
 
-      <Text style={styles.footer}>📱 Saved to Apple Notes</Text>
+      <View style={styles.footerRow}>
+        <SmartphoneIcon size={12} color={Colors.textTertiary} />
+        <Text style={styles.footer}>Saved to Apple Notes</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -89,10 +93,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     padding: 16,
     paddingBottom: 8,
   },
-  icon: { fontSize: 18, marginRight: 8 },
   title: {
     fontFamily: 'Syne_600SemiBold',
     fontSize: 13,
@@ -131,12 +135,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 20,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    padding: 12,
+    paddingTop: 8,
+  },
   footer: {
     fontFamily: 'Syne_400Regular',
     fontSize: 11,
     color: Colors.textTertiary,
-    padding: 12,
-    paddingTop: 8,
-    textAlign: 'right',
   },
 });
