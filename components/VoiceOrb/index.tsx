@@ -13,7 +13,7 @@ import Animated, {
 import Svg, { Defs, RadialGradient, Stop, Circle, Path } from 'react-native-svg';
 import { OrbState } from '../../types';
 
-const ORB_SIZE = 180;
+const ORB_SIZE = 140;
 
 // Blob colors — same as AIAvatar
 const CYAN   = '#90e0ff';

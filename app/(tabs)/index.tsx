@@ -29,7 +29,7 @@ import { getMissingFields } from '../../lib/action-validator';
 import { ClarificationDialog } from '../../components/ClarificationDialog';
 import BottomSheet from '@gorhom/bottom-sheet';
 
-import { GearIcon } from '../../components/Icons';
+import { GearIcon, ClockIcon } from '../../components/Icons';
 import { Colors } from '../../constants/colors';
 import { AppSettings, OrbState, CardData, ActionPayload, ActionStatus, ConversationMessage } from '../../types';
 import { DEFAULT_SETTINGS } from './settings';
@@ -485,6 +485,252 @@ If not found, ask the user for the phone number.
 Confirm you're placing the call to ${target}.`;
   }
 
+  // ─── Navigation ──────────────────────────────────────────────────────────────
+  if (/(navigate|directions?\s+to|take me to|how do i get to|drive me to|route to)/.test(lower)) {
+    const dest = text.replace(/^(navigate|give me directions|take me|drive me|how do i get)\s+(to\s+)?/i, '').trim();
+    return `The user wants navigation to: "${dest}".
+Open Apple Maps with directions: open "http://maps.apple.com/?daddr=${encodeURIComponent(dest)}&dirflg=d"
+Tell the user you're opening directions to ${dest}. If you can estimate distance/ETA, mention it.
+End with [NAVIGATE: destination="${dest}"]`;
+  }
+  if (/(nearest|closest|nearby)\s+(\w[\w\s]{2,30})/.test(lower)) {
+    const placeMatch = lower.match(/(nearest|closest|nearby)\s+([\w\s]+)/);
+    const place = placeMatch?.[2]?.trim() ?? text;
+    return `The user wants to find the nearest ${place}.
+Search the web for nearby options:
+curl -s "https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(place + ' near me best rated')}" | sed 's/<[^>]*>//g' | head -40
+DO NOT open Maps yet. List the top 5 ${place} options as a numbered list with name and a short detail (rating, cuisine, distance if available).
+The user will ask you to navigate to one afterwards.
+IMPORTANT: Always respond in English.
+End with [PLACES: query="${place}"]`;
+  }
+
+  // ─── Sports & F1 ─────────────────────────────────────────────────────────────
+  if (/(f1|formula\s*1|formula\s*one)\s*(standing|champion|driver|constructor|result|race|schedule|calendar|next|last|weekend)/i.test(lower)
+    || /\b(f1|formula\s*1)\b/i.test(lower)) {
+    let f1cmd = '';
+    if (/(standing|champion|driver)/i.test(lower)) {
+      f1cmd = `Get F1 driver standings:
+curl -s "https://ergast.com/api/f1/current/driverStandings.json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+sl=d['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']
+for s in sl[:10]:
+    print(f\\"{s['position']}. {s['Driver']['givenName']} {s['Driver']['familyName']} ({s['Constructors'][0]['name']}) — {s['points']} pts\\")
+"`;
+    } else if (/constructor/i.test(lower)) {
+      f1cmd = `Get F1 constructor standings:
+curl -s "https://ergast.com/api/f1/current/constructorStandings.json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+sl=d['MRData']['StandingsTable']['StandingsLists'][0]['ConstructorStandings']
+for s in sl:
+    print(f\\"{s['position']}. {s['Constructor']['name']} — {s['points']} pts\\")
+"`;
+    } else if (/(next|upcoming|when)/i.test(lower)) {
+      f1cmd = `Get next F1 race:
+curl -s "https://ergast.com/api/f1/current/next.json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+r=d['MRData']['RaceTable']['Races'][0]
+print(f\\"Next race: {r['raceName']}\\")
+print(f\\"Circuit: {r['Circuit']['circuitName']}, {r['Circuit']['Location']['locality']}, {r['Circuit']['Location']['country']}\\")
+print(f\\"Date: {r['date']} at {r.get('time','TBA')}\\")
+"`;
+    } else if (/(last|result|podium)/i.test(lower)) {
+      f1cmd = `Get last F1 race results:
+curl -s "https://ergast.com/api/f1/current/last/results.json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+race=d['MRData']['RaceTable']['Races'][0]
+print(f\\"{race['raceName']} — {race['date']}\\")
+for r in race['Results'][:10]:
+    print(f\\"{r['position']}. {r['Driver']['givenName']} {r['Driver']['familyName']} ({r['Constructor']['name']}) — {r.get('Time',{}).get('time',r.get('status',''))}\\")
+"`;
+    } else if (/(schedule|calendar)/i.test(lower)) {
+      f1cmd = `Get F1 season schedule:
+curl -s "https://ergast.com/api/f1/current.json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+for r in d['MRData']['RaceTable']['Races']:
+    print(f\\"{r['round']}. {r['raceName']} — {r['date']} ({r['Circuit']['Location']['country']})\\")
+"`;
+    } else {
+      f1cmd = `The user asked about F1: "${text}".
+Get relevant F1 data. Try driver standings:
+curl -s "https://ergast.com/api/f1/current/driverStandings.json" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+sl=d['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']
+for s in sl[:10]:
+    print(f\\"{s['position']}. {s['Driver']['givenName']} {s['Driver']['familyName']} ({s['Constructors'][0]['name']}) — {s['points']} pts\\")
+"`;
+    }
+    return `${f1cmd}
+Present the results clearly. End with [F1: type="standings"]`;
+  }
+
+  if (/(score|result|match).*(game|match|team|play|vs|versus|against)/i.test(lower)
+    || /(who won|who.s winning|how did.*play|how is.*doing)/i.test(lower) && /(team|match|game|league|cup)/i.test(lower)) {
+    return `The user asks about sports: "${text}".
+Search for live scores using:
+curl -s "https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+for e in d.get('events',[])[:10]:
+    comps=e['competitions'][0]
+    t1=comps['competitors'][0]
+    t2=comps['competitors'][1]
+    print(f\\"{t1['team']['displayName']} {t1['score']} - {t2['score']} {t2['team']['displayName']} ({e['status']['type']['shortDetail']})\\")
+"
+If the user asks about a specific team or sport, try to find the right league. Present scores clearly.
+End with [SPORTS: type="score"]`;
+  }
+
+  // ─── Nearby Places ──────────────────────────────────────────────────────────
+  if (/(find.*restaurant|find.*cafe|find.*coffee|find.*shop|find.*hotel|find.*pharmacy|find.*bar|find.*gym|where can i eat|where can i find|find.*near)/i.test(lower)) {
+    const placeMatch = text.match(/find\s+(?:a\s+|the\s+|some\s+)?(?:good\s+|nice\s+|best\s+)?([\w\s]+?)(?:\s+near|\s+close|\s+around|\s+here|$)/i);
+    const place = placeMatch?.[1]?.trim() ?? text;
+    return `The user wants to find places nearby: "${text}".
+Search the web for nearby options:
+curl -s "https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(place + ' near me best rated')}" | sed 's/<[^>]*>//g' | head -40
+DO NOT open Maps yet. List the top 5 options as a numbered list. For each place include:
+- Name
+- Short detail (rating, cuisine type, price range, or distance if available)
+The user will tell you which one to navigate to afterwards.
+IMPORTANT: Always respond in English.
+End with [PLACES: query="${place}"]`;
+  }
+
+  // ─── Flight Tracking ────────────────────────────────────────────────────────
+  if (/(track.*flight|flight.*status|where.*flight|flight\s+[A-Z]{2}\d{1,4}|my flight)/i.test(lower)) {
+    const flightNum = text.match(/\b([A-Z]{2}\d{1,4})\b/i)?.[1]?.toUpperCase() ?? '';
+    return `The user wants to track a flight: "${text}".
+${flightNum ? `Flight number: ${flightNum}` : 'Ask the user for the flight number.'}
+Search for flight info: curl -s "https://lite.duckduckgo.com/lite/?q=flight+${flightNum || 'status'}+today" | sed 's/<[^>]*>//g' | head -30
+Also try: curl -s "https://www.flightradar24.com/data/flights/${flightNum?.toLowerCase() || ''}" 2>/dev/null | head -20
+Present the flight status, departure/arrival times, and any delays.
+${flightNum ? `End with [FLIGHT: number="${flightNum}"]` : 'End with [FLIGHT: number=""]'}`;
+  }
+
+  // ─── Package Tracking ───────────────────────────────────────────────────────
+  if (/(track.*package|where.*package|package.*status|delivery.*status|where.*delivery|my (order|package|delivery)|tracking number)/i.test(lower)) {
+    const trackingNum = text.match(/\b([A-Z0-9]{10,30})\b/)?.[1] ?? '';
+    return `The user wants to track a package: "${text}".
+${trackingNum ? `Tracking number: ${trackingNum}` : `First check recent emails for tracking numbers:
+osascript -e 'tell application "Mail" to get content of (first message of inbox whose subject contains "ship" or subject contains "track" or subject contains "delivery")'`}
+Search for tracking info: curl -s "https://lite.duckduckgo.com/lite/?q=track+package+${trackingNum || ''}" | sed 's/<[^>]*>//g' | head -30
+Tell the user the package status, carrier, and estimated delivery.
+End with [PACKAGE: carrier="", status="", tracking="${trackingNum}"]`;
+  }
+
+  // ─── Document Summary + Search ──────────────────────────────────────────────
+  if (/(summarize|summary of|read this|what.*this.*document|explain.*document|what.*pdf|summarize.*file)/i.test(lower)) {
+    const fileMatch = text.match(/(?:summarize|summary of|read)\s+(?:this\s+)?(?:document\s+|file\s+|pdf\s+)?(.+)/i);
+    const fileName = fileMatch?.[1]?.trim() ?? '';
+    return `The user wants to summarize a document: "${text}".
+${fileName ? `Find the file: mdfind -name "${fileName}" | head -5` : 'Find recent documents: mdfind "kMDItemContentType == \'com.adobe.pdf\' || kMDItemContentType == \'public.plain-text\'" -onlyin ~/Documents | head -10'}
+Once found, extract the text:
+textutil -convert txt -stdout "FILE_PATH" 2>/dev/null | head -200
+Or for PDF: mdimport -d2 "FILE_PATH" 2>&1 | head -100
+Summarize the key points concisely. End with [DOCUMENT: action="summary", name="filename"]`;
+  }
+  if (/(find.*document|search.*document|search.*file|find.*file|document.*about|file.*about|search.*pdf)/i.test(lower)) {
+    const queryMatch = text.match(/(?:find|search)\s+(?:for\s+)?(?:a\s+)?(?:document|file|pdf)s?\s+(?:about\s+|named\s+|called\s+)?(.+)/i);
+    const query = queryMatch?.[1]?.trim() ?? text;
+    return `The user wants to find documents: "${text}".
+Search: mdfind "${query}" -onlyin ~/Documents -onlyin ~/Desktop -onlyin ~/Downloads | head -15
+For each file found, get its info: stat -f "%Sm %N" -t "%Y-%m-%d" FILE
+IMPORTANT: In your response, list each file on its own line with the FULL PATH included, like:
+1. report.pdf - /Users/roberto/Documents/report.pdf - 2024-03-01
+2. notes.txt - /Users/roberto/Desktop/notes.txt - 2024-02-15
+This format is required so the user can tap to open the file on their phone.
+End with [DOCUMENT: action="search", query="${query}"]`;
+  }
+
+  // ─── Screen Reading / OCR ───────────────────────────────────────────────────
+  if (/(what.*on my screen|read my screen|analyze.*screen|what do i see|what.*screen.*show|screen.*shot.*read|ocr)/i.test(lower)) {
+    return `The user wants you to read/analyze what's on their screen: "${text}".
+Take a screenshot: screencapture -x /tmp/claw_screen.png
+Convert to text (OCR): shortcuts run "Extract Text from Image" <<< /tmp/claw_screen.png
+If that shortcut doesn't exist, try: osascript -e 'do shell script "screencapture -x /tmp/claw_screen.png && base64 -i /tmp/claw_screen.png | head -c 1000"'
+Describe what you see or answer the user's question about the screen content.`;
+  }
+
+  // ─── Shortcuts Management ────────────────────────────────────────────────────
+  if (/(create.*shortcut|make.*shortcut|new shortcut|list.*shortcut|what shortcut|my shortcut)/i.test(lower)) {
+    if (/list|what|show|my/.test(lower)) {
+      return `List the user's Apple Shortcuts: shortcuts list
+Present them in a readable list. End with [SYSTEM: action="shortcuts_listed"]`;
+    }
+    return `The user wants to create a Shortcut: "${text}".
+Open the Shortcuts app for creation: open "shortcuts://create-shortcut"
+Tell the user the Shortcuts app has been opened so they can create their shortcut.
+End with [SYSTEM: action="shortcuts_opened"]`;
+  }
+
+  // ─── Routines ────────────────────────────────────────────────────────────────
+  if (/(leaving home|i.m leaving|going out|heading out)/i.test(lower)) {
+    return `The user is leaving home. Run their "Leaving Home" routine:
+Step 1: Turn off all lights: shortcuts run "Turn Off Lights" 2>/dev/null || echo "No lights shortcut"
+Step 2: Lock front door: shortcuts run "Lock Front Door" 2>/dev/null || echo "No lock shortcut"
+Step 3: Set thermostat to 18°: shortcuts run "Set Thermostat" <<< '{"temp":18}' 2>/dev/null || echo "No thermostat shortcut"
+Step 4: Enable away mode: shortcuts run "Away Mode" 2>/dev/null || echo "No away mode shortcut"
+Report each step as you complete it with a checkmark. End with [ROUTINE: name="Leaving Home"]`;
+  }
+  if (/(arriving home|i.m home|just got home|back home)/i.test(lower)) {
+    return `The user arrived home. Run their "Arriving Home" routine:
+Step 1: Turn on lights: shortcuts run "Turn On Lights" 2>/dev/null || echo "No lights shortcut"
+Step 2: Unlock front door: shortcuts run "Unlock Front Door" 2>/dev/null || echo "No lock shortcut"
+Step 3: Set thermostat to 21°: shortcuts run "Set Thermostat" <<< '{"temp":21}' 2>/dev/null || echo "No thermostat shortcut"
+Step 4: Disable away mode / DND: shortcuts run "Arrive Home" 2>/dev/null || echo "No arrive home shortcut"
+Report each step. End with [ROUTINE: name="Arriving Home"]`;
+  }
+  if (/(bedtime|going to bed|time for bed|going to sleep|bedtime routine)/i.test(lower)) {
+    return `The user is going to bed. Run their "Bedtime" routine:
+Step 1: Turn off lights: shortcuts run "Turn Off Lights" 2>/dev/null || echo "skipped"
+Step 2: Lock doors: shortcuts run "Lock Front Door" 2>/dev/null || echo "skipped"
+Step 3: Enable Do Not Disturb: shortcuts run "Focus On" 2>/dev/null || echo "skipped"
+Step 4: Set thermostat to 19°: shortcuts run "Set Thermostat" <<< '{"temp":19}' 2>/dev/null || echo "skipped"
+Report each step. Say good night. End with [ROUTINE: name="Bedtime"]`;
+  }
+  if (/(run.*routine|execute.*routine|start.*routine)/i.test(lower)) {
+    const routineName = text.replace(/^(run|execute|start)\s+(my\s+)?/i, '').replace(/\s*routine\s*$/i, '').trim();
+    return `The user wants to run a routine called "${routineName}": "${text}".
+Try running each step of the "${routineName}" routine using Apple Shortcuts.
+Check available shortcuts first: shortcuts list | grep -i "${routineName}"
+Run the matching shortcuts in sequence. Report each step with checkmarks.
+End with [ROUTINE: name="${routineName}"]`;
+  }
+
+  // ─── Health & Fitness ───────────────────────────────────────────────────────
+  if (/(how many steps|my steps|step count|steps today|daily steps)/i.test(lower)) {
+    return `The user wants their step count. Query Apple Health via Shortcuts:
+shortcuts run "Get Steps" 2>/dev/null || osascript -e 'tell application "Health" to activate'
+If no shortcut exists, tell the user you need a "Get Steps" Shortcut set up, or show mock data.
+Present the step count. End with [HEALTH: type="steps"]`;
+  }
+  if (/(heart rate|my heart|bpm|pulse)/i.test(lower)) {
+    return `The user wants their heart rate. Query via Shortcuts:
+shortcuts run "Get Heart Rate" 2>/dev/null
+Present the heart rate. End with [HEALTH: type="heart_rate"]`;
+  }
+  if (/(sleep|how.*sleep|sleep.*last night|sleep.*hours)/i.test(lower)) {
+    return `The user wants their sleep data. Query via Shortcuts:
+shortcuts run "Get Sleep" 2>/dev/null
+Present sleep duration and quality. End with [HEALTH: type="sleep"]`;
+  }
+  if (/(calories|calorie.*burn|energy.*burn|kcal)/i.test(lower)) {
+    return `The user wants calorie data. Query via Shortcuts:
+shortcuts run "Get Calories" 2>/dev/null
+Present calories burned today. End with [HEALTH: type="calories"]`;
+  }
+  if (/(my health|health.*summary|fitness.*summary|workout.*today|exercise)/i.test(lower)) {
+    return `The user wants a health summary. Query via Shortcuts:
+shortcuts run "Get Steps" 2>/dev/null; shortcuts run "Get Calories" 2>/dev/null; shortcuts run "Get Heart Rate" 2>/dev/null
+Present all available health metrics. End with [HEALTH: type="summary"]`;
+  }
+
   // Facts, trivia, "who is", "what is", "tell me about" — search the web first
   if (/(who is|who was|what is|what are|what was|tell me about|how does|how do|why is|why do|when did|when was|explain|define|meaning of|fact about|facts about|did you know|search for|look up|google)/.test(lower)) {
     return `The user is asking a factual question: "${text}".
@@ -603,9 +849,15 @@ export default function VoiceScreen() {
   const voice = useVoiceInput({
     settings,
     onTranscript: useCallback(
-      (text: string) => {
+      (text: string, detectedLanguage?: string) => {
         if (!text.trim()) { setOrbState('idle'); return; }
-        const expanded = expandSpecialPhrase(text, userLocation?.city ?? undefined);
+        let expanded = expandSpecialPhrase(text, userLocation?.city ?? undefined);
+
+        // Multi-language: disabled for now (Whisper defaults to English)
+        // If needed later, remove language='en' from whisper-stt.ts and re-enable:
+        // if (detectedLanguage && detectedLanguage !== 'en') {
+        //   expanded = `[The user spoke in ${detectedLanguage}. Respond in ${detectedLanguage}.]\n\n${expanded}`;
+        // }
 
         // Prepend recent conversation context so the AI understands follow-ups
         // like "email Marine about this meeting" or "delete that event"
@@ -743,6 +995,11 @@ export default function VoiceScreen() {
     if (orbState === 'recording') {
       haptics.medium();
       voice.stopRecording();
+    } else if (orbState === 'thinking' || orbState === 'speaking') {
+      // Interrupt: stop TTS, reset state
+      haptics.medium();
+      tts.stop();
+      setOrbState('idle');
     } else if (orbState === 'idle' || orbState === 'done') {
       haptics.light();
       // Keep previous card visible until new response arrives
@@ -751,7 +1008,7 @@ export default function VoiceScreen() {
       setActionProvider(null);
       await voice.startRecording();
     }
-  }, [orbState, voice]);
+  }, [orbState, voice, tts]);
 
   const handleOrbLongPress = useCallback(async () => {
     if (orbState !== 'idle' && orbState !== 'done') return;
@@ -778,11 +1035,16 @@ export default function VoiceScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <StatusDot status={status} />
-          <Text style={styles.appName}>Claw</Text>
+          <Text style={styles.appName}>Vox</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsBtn}>
-          <GearIcon size={18} color={Colors.textTertiary} strokeWidth={1.8} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => router.push('/history')} style={styles.headerBtn}>
+            <ClockIcon size={18} color={Colors.textTertiary} strokeWidth={1.8} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={styles.headerBtn}>
+            <GearIcon size={18} color={Colors.textTertiary} strokeWidth={1.8} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content — scrollable middle area */}
@@ -877,7 +1139,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 0.3,
   },
-  settingsBtn: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerBtn: {
     padding: 4,
   },
   scroll: {
@@ -913,7 +1180,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bottomSpacer: {
-    height: 220,
+    height: 180,
   },
 
   // Orb fixed to bottom

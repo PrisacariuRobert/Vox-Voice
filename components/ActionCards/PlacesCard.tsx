@@ -13,10 +13,12 @@ function parsePlaces(text: string): { name: string; detail: string }[] {
   const places: { name: string; detail: string }[] = [];
   const lines = text.split('\n').filter(l => l.trim().length > 5);
   for (const line of lines.slice(0, 5)) {
-    const clean = line.replace(/^[•\-*\d.)\s]+/, '').trim();
-    const parts = clean.split(/\s*[-–—:]\s*/);
-    if (parts.length >= 2) {
-      places.push({ name: parts[0], detail: parts.slice(1).join(' - ') });
+    // Strip numbered prefix like "1. " or "1) " or bullet points
+    const clean = line.replace(/^[•\-*\s]*\d+[.)]\s*/, '').replace(/^[•\-*\s]+/, '').trim();
+    // Try splitting on dash, colon, or em-dash (name — detail)
+    const parts = clean.split(/\s*[-–—]\s*|\s*:\s*/);
+    if (parts.length >= 2 && parts[0].length > 2) {
+      places.push({ name: parts[0].trim(), detail: parts.slice(1).join(' - ').trim() });
     } else if (clean.length > 5) {
       places.push({ name: clean, detail: '' });
     }

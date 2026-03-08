@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Claw Voice",
+    "name": "Vox",
     "slug": "claw-voice",
     "scheme": "clawvoice",
     "version": "1.0.0",
@@ -15,13 +15,13 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "Allow Claw to use speech recognition for voice commands.",
-        "NSMicrophoneUsageDescription": "Allow Claw to use your microphone for voice commands.",
-        "NSLocationWhenInUseUsageDescription": "Allow Claw to use your location for weather and local information.",
-        "NSCalendarsFullAccessUsageDescription": "Allow Claw to create calendar events for you.",
-        "NSCalendarsUsageDescription": "Allow Claw to create calendar events for you.",
-        "NSRemindersFullAccessUsageDescription": "Allow Claw to access reminders.",
-        "NSRemindersUsageDescription": "Allow Claw to access reminders."
+        "NSSpeechRecognitionUsageDescription": "Allow Vox to use speech recognition for voice commands.",
+        "NSMicrophoneUsageDescription": "Allow Vox to use your microphone for voice commands.",
+        "NSLocationWhenInUseUsageDescription": "Allow Vox to use your location for weather and local information.",
+        "NSCalendarsFullAccessUsageDescription": "Allow Vox to create calendar events for you.",
+        "NSCalendarsUsageDescription": "Allow Vox to create calendar events for you.",
+        "NSRemindersFullAccessUsageDescription": "Allow Vox to access reminders.",
+        "NSRemindersUsageDescription": "Allow Vox to access reminders."
       },
       "bundleIdentifier": "com.roberto.clawvoice"
     },
@@ -49,28 +49,28 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow Claw to use your microphone for voice commands."
+          "microphonePermission": "Allow Vox to use your microphone for voice commands."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Claw to show your photos when you ask for them.",
-          "savePhotosPermission": "Allow Claw to save photos.",
+          "photosPermission": "Allow Vox to show your photos when you ask for them.",
+          "savePhotosPermission": "Allow Vox to save photos.",
           "isAccessMediaLocationEnabled": true
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Claw to use your location for weather and local information."
+          "locationWhenInUsePermission": "Allow Vox to use your location for weather and local information."
         }
       ],
       [
         "expo-calendar",
         {
-          "calendarPermission": "Allow Claw to create calendar events for you.",
-          "remindersPermission": "Allow Claw to access reminders."
+          "calendarPermission": "Allow Vox to create calendar events for you.",
+          "remindersPermission": "Allow Vox to access reminders."
         }
       ],
       "expo-mail-composer",

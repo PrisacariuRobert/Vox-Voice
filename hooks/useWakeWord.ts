@@ -49,8 +49,8 @@ export function useWakeWord({
 
       if (!uri) return;
 
-      const text = await transcribeAudio(uri, settings.whisperApiKey);
-      const lower = text.toLowerCase().trim();
+      const result = await transcribeAudio(uri, settings.whisperApiKey);
+      const lower = result.text.toLowerCase().trim();
 
       if (settings.wakePhrases.some((phrase) => lower.includes(phrase))) {
         if (mountedRef.current) onWake();

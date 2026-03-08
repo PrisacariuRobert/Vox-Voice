@@ -7,6 +7,16 @@ export interface IconProps {
   strokeWidth?: number;
 }
 
+// ─── Navigation icons ─────────────────────────────────────────────────────────
+
+export function ChevronLeftIcon({ size = 24, color = '#fff', strokeWidth = 2 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Polyline points="15,18 9,12 15,6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 // ─── Tab bar icons ───────────────────────────────────────────────────────────
 
 export function MicIcon({ size = 24, color = '#fff', strokeWidth = 2 }: IconProps) {

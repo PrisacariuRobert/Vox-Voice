@@ -1,0 +1,5 @@
+ultralytics
+flask
+pillow
+torch
+git+https://github.com/openai/CLIP.git

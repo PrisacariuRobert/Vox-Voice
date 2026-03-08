@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/colors';
+import { ChevronLeftIcon } from '../../components/Icons';
 
 // Lazy-load native modules
 let AuthSession: typeof import('expo-auth-session') | null = null;
@@ -298,6 +300,7 @@ function ConnectableServiceRow({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -316,7 +319,7 @@ export default function SettingsScreen() {
     try {
       await saveSettings(settings);
       setSaved(true);
-      Alert.alert('Saved', 'Settings saved. Claw now knows your profile.');
+      Alert.alert('Saved', 'Settings saved. Vox now knows your profile.');
     } catch {
       Alert.alert('Error', 'Failed to save settings.');
     } finally {
@@ -387,6 +390,9 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ChevronLeftIcon size={22} color={Colors.text} strokeWidth={2} />
+        </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
         <TouchableOpacity onPress={handleReset}>
           <Text style={styles.resetBtn}>Reset</Text>
@@ -398,7 +404,7 @@ export default function SettingsScreen() {
         {/* ── User Profile ── */}
         <Section
           title="Your Profile"
-          subtitle="Claw uses this to personalize responses and know your preferences."
+          subtitle="Vox uses this to personalize responses and know your preferences."
         />
         <Field
           label="Your Name"
@@ -620,7 +626,7 @@ export default function SettingsScreen() {
               onPress={() => {
                 Alert.alert(
                   'How to set up Zoom',
-                  '1. Go to marketplace.zoom.us\n2. Click "Build App" → "Server-to-Server OAuth"\n3. Give it a name (e.g. "Claw Voice")\n4. Copy Account ID, Client ID, and Client Secret\n5. Under Scopes, add: meeting:write:admin\n6. Activate the app',
+                  '1. Go to marketplace.zoom.us\n2. Click "Build App" → "Server-to-Server OAuth"\n3. Give it a name (e.g. "Vox")\n4. Copy Account ID, Client ID, and Client Secret\n5. Under Scopes, add: meeting:write:admin\n6. Activate the app',
                 );
               }}
             >
@@ -667,7 +673,7 @@ export default function SettingsScreen() {
         {/* ── What Claw Can Do ── */}
         <Section
           title="Services"
-          subtitle="Connect services so Claw can use them for you."
+          subtitle="Connect services so Vox can use them for you."
         />
         {BUILT_IN_SERVICES.map((svc) => (
           <BuiltInServiceRow key={svc.id} name={svc.name} description={svc.desc} />
@@ -806,7 +812,7 @@ export default function SettingsScreen() {
               v.split(',').map((p) => p.trim().toLowerCase()).filter(Boolean)
             )
           }
-          placeholder="hey claw, ok claw"
+          placeholder="hey vox, ok vox"
         />
 
         {/* ── Save ── */}
@@ -839,6 +845,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.surfaceBorder,
   },
+  backBtn: { padding: 4 },
   title: { fontFamily: 'Syne_700Bold', fontSize: 28, color: Colors.text },
   resetBtn: { fontFamily: 'Syne_500Medium', fontSize: 14, color: Colors.pink },
   scroll: { padding: 20 },

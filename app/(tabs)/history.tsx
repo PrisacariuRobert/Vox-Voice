@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { ConversationMessage } from '../../types';
 import { getConversations, clearConversations } from '../../lib/conversation-store';
 import { CardEngine } from '../../components/ActionCards/CardEngine';
-import { ClockIcon } from '../../components/Icons';
+import { ClockIcon, ChevronLeftIcon } from '../../components/Icons';
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
@@ -58,7 +59,7 @@ export default function HistoryScreen() {
       <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
         <View style={styles.messageMeta}>
           <Text style={[styles.role, isUser ? styles.userRole : styles.assistantRole]}>
-            {isUser ? 'You' : 'Claw'}
+            {isUser ? 'You' : 'Vox'}
           </Text>
           <Text style={styles.timestamp}>{formatTime(item.timestamp)}</Text>
         </View>
@@ -86,12 +87,15 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ChevronLeftIcon size={22} color={Colors.text} strokeWidth={2} />
+        </TouchableOpacity>
         <Text style={styles.title}>History</Text>
-        {messages.length > 0 && (
+        {messages.length > 0 ? (
           <TouchableOpacity onPress={handleClear}>
             <Text style={styles.clear}>Clear</Text>
           </TouchableOpacity>
-        )}
+        ) : <View style={{ width: 40 }} />}
       </View>
 
       <FlatList
@@ -105,7 +109,7 @@ export default function HistoryScreen() {
             <ClockIcon size={48} color={Colors.textTertiary} strokeWidth={1.2} />
             <Text style={styles.emptyText}>No conversations yet</Text>
             <Text style={styles.emptySubtext}>
-              Tap the mic button on the Voice tab to get started
+              Tap the orb to start a conversation
             </Text>
           </View>
         }
@@ -130,6 +134,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.surfaceBorder,
+  },
+  backBtn: {
+    padding: 4,
   },
   title: {
     fontFamily: 'Syne_700Bold',

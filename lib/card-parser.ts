@@ -340,7 +340,7 @@ export function parseResponse(
   if (/(score.*\d|match.*result|\d\s*-\s*\d|final.*score|halftime|full.*time)/i.test(lower)) {
     return buildCard('sports', content, metadata);
   }
-  if (/(nearby|restaurant.*near|places.*near|found.*places|here.*places|coffee.*near|shop.*near)/i.test(lower)) {
+  if (/(nearby|restaurant.*near|places.*near|found.*places|here.*places|coffee.*near|shop.*near|here are.*(?:top|best)|top \d+ (?:restaurant|cafe|coffee|place|bar|hotel|shop|gym)|(?:restaurant|cafe|coffee|place|bar|hotel|shop|gym).*(?:option|recommend|suggestion))/i.test(lower)) {
     return buildCard('places', content, metadata);
   }
   if (/(flight.*status|flight.*[A-Z]{2}\d|depart.*arriv|gate.*\w\d|boarding|in.*air|landed)/i.test(lower)) {

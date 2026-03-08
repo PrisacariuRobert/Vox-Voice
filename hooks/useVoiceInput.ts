@@ -15,7 +15,7 @@ export type VoiceInputState = 'idle' | 'recording' | 'processing';
 
 interface UseVoiceInputOptions {
   settings: Pick<AppSettings, 'sttProvider' | 'whisperApiKey'>;
-  onTranscript?: (text: string) => void;
+  onTranscript?: (text: string, detectedLanguage?: string) => void;
 }
 
 // Normalize dB metering (-160..0) → 0..1
@@ -115,13 +115,16 @@ export function useVoiceInput({ settings, onTranscript }: UseVoiceInputOptions) 
       }
 
       let text = '';
+      let detectedLang: string | undefined;
       if (settings.sttProvider === 'whisper' && settings.whisperApiKey) {
-        text = await transcribeAudio(uri, settings.whisperApiKey);
+        const result = await transcribeAudio(uri, settings.whisperApiKey);
+        text = result.text;
+        detectedLang = result.language;
       }
 
       if (isMountedRef.current) {
         setTranscript(text);
-        onTranscript?.(text);
+        onTranscript?.(text, detectedLang);
         setState('idle');
       }
     } catch (err) {
