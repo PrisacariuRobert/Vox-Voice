@@ -1,3 +1,25 @@
+/**
+ * useWakeWord — Hands-free wake word detection using periodic Whisper bursts.
+ *
+ * How it works:
+ *   1. Records 2.5s audio bursts every 3s in the background
+ *   2. Sends each burst to Whisper STT for transcription
+ *   3. Checks if transcript contains any wake phrase from settings.wakePhrases
+ *   4. If matched → fires onWake callback (which starts recording mode)
+ *
+ * Design choices:
+ *   - Uses LOW_QUALITY recording preset for battery efficiency
+ *   - Best-effort: silently ignores transcription errors
+ *   - Can be upgraded to Porcupine for always-on, on-device wake word
+ *
+ * Default wake phrases: "hey vox", "ok vox"
+ *
+ * Returns:
+ *   listening: boolean (whether wake word detection is active)
+ *   start(), stop()
+ *
+ * @module useWakeWord
+ */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   useAudioRecorder,

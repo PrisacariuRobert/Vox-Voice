@@ -1,3 +1,22 @@
+/**
+ * useOpenClaw — React hook for communicating with the OpenClaw AI gateway.
+ *
+ * Features:
+ *   - Manages WebSocket connection lifecycle (connect/disconnect)
+ *   - Tracks connection status: disconnected → connecting → connected → error
+ *   - Streams AI response chunks in real-time
+ *   - Accumulates full response text for card parsing
+ *   - Emits 'done' when response is complete
+ *   - Auto-reconnects on disconnect
+ *
+ * Returns:
+ *   send(text): sends user message to gateway
+ *   status: ConnectionStatus
+ *   streamingText: current partial response
+ *   lastMessage: last complete OpenClawMessage
+ *
+ * @module useOpenClaw
+ */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { openClawClient } from '../lib/openclaw-client';
 import { OpenClawMessage, ConnectionStatus, ConversationMessage } from '../types';
