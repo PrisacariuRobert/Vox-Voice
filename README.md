@@ -97,7 +97,38 @@ Every response is parsed into a rich, interactive card:
 
 ## Quick Start
 
-### 1. Clone and install
+### Option A: Interactive Setup Wizard (Recommended)
+
+The fastest way to get Vox running. The CLI wizard installs everything, configures your API keys, and deploys to your device — all in one go.
+
+```bash
+git clone https://github.com/PrisacariuRobert/Vox-Voice
+cd vox
+npm install
+npm run setup
+```
+
+The wizard will walk you through:
+1. Checking system requirements (Node, Xcode, Python)
+2. Installing all dependencies
+3. Configuring your OpenClaw gateway connection
+4. Setting up your OpenAI API key
+5. Your user profile (name, email, timezone)
+6. Voice settings (TTS provider and voice)
+7. Optional integrations (Zoom, Microsoft 365, Photo Search server)
+
+Once setup is complete, deploy to your device:
+
+```bash
+npm run deploy          # Interactive — pick iOS or Android
+# or directly:
+npm run vox -- deploy ios
+npm run vox -- deploy android
+```
+
+### Option B: Manual Setup
+
+#### 1. Clone and install
 
 ```bash
 git clone https://github.com/PrisacariuRobert/Vox-Voice
@@ -105,11 +136,11 @@ cd vox
 npm install
 ```
 
-### 2. Start the OpenClaw gateway on your Mac
+#### 2. Start the OpenClaw gateway on your Mac
 
 Follow the [OpenClaw setup guide](https://github.com/nichochar/openclaw) to get the gateway running. Note the WebSocket URL (default: `ws://YOUR_MAC_IP:18789`) and auth token from `openclaw.json`.
 
-### 3. Run the app
+#### 3. Run the app
 
 ```bash
 # Development build (recommended — supports all native modules)
@@ -121,7 +152,7 @@ npx expo run:android
 npx expo start --web
 ```
 
-### 4. Configure in Settings
+#### 4. Configure in Settings
 
 Open the app and go to Settings (gear icon, top-right):
 
@@ -131,6 +162,36 @@ Open the app and go to Settings (gear icon, top-right):
 4. **Voice** — Pick a TTS provider (OpenAI, Kokoro, Google, or device)
 
 The green dot next to "Vox" in the header means you're connected to the gateway.
+
+## CLI Commands
+
+Vox includes a CLI tool for setup, diagnostics, and launching services.
+
+```bash
+npm run vox -- <command>
+```
+
+| Command | Description |
+|---------|-------------|
+| `npm run setup` | Interactive setup wizard — installs everything and configures API keys |
+| `npm run doctor` | Check system requirements and configuration health |
+| `npm run deploy` | Build and deploy to a connected device (iOS/Android) |
+| `npm run vox -- start` | Start all services (Expo dev server + Photo Search server) |
+| `npm run vox -- start app` | Start only the Expo dev server |
+| `npm run vox -- start photo` | Start only the YOLO Photo Search server |
+| `npm run vox -- config` | View or edit saved configuration |
+| `npm run vox -- help` | Show all available commands |
+
+### Global install (optional)
+
+If you want to use the `vox` command globally:
+
+```bash
+cd cli && npm link
+vox setup    # now works from anywhere
+vox doctor
+vox deploy ios
+```
 
 ## Configuration
 
