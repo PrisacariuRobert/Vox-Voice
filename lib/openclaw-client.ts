@@ -1,3 +1,28 @@
+/**
+ * OpenClaw WebSocket Client — Singleton client for the OpenClaw AI gateway.
+ *
+ * Features:
+ *   - Protocol v3 with Ed25519 device authentication (nonce signing)
+ *   - Pre-generated device keypair (no runtime keygen needed)
+ *   - Message queueing: messages are buffered until handshake completes
+ *   - Profile context injection: user profile is prepended to first message per session
+ *   - Session-based routing: messages routed to agent:main:SESSION_KEY
+ *   - Streaming response: chunks emitted as they arrive, 'done' signal on completion
+ *   - Thinking timeout: forces 'done' after 60s if gateway goes silent
+ *   - Auto-reconnect with exponential backoff (1s → 2s → 4s → 8s → 15s)
+ *
+ * Usage:
+ *   openClawClient.connect(wsUrl, authToken)
+ *   openClawClient.send("What's the weather?", "main")
+ *   openClawClient.onMessage((msg) => { ... })  // chunk | done | error
+ *   openClawClient.onStatus((status) => { ... }) // connecting | connected | disconnected | error
+ *
+ * The gateway (https://github.com/openclaw/openclaw) runs on the user's Mac
+ * and executes commands via osascript, curl, and shell — then streams AI
+ * responses back to the phone over WebSocket.
+ *
+ * @module openclaw-client
+ */
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { OpenClawMessage, ConnectionStatus } from '../types';
 
