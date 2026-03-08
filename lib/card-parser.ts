@@ -1,3 +1,38 @@
+/**
+ * Card Parser — Detects response type and extracts structured data from AI responses.
+ *
+ * This is the brain that turns raw AI text into rich interactive cards.
+ * It uses a 3-tier detection system (in priority order):
+ *
+ * 1. MARKER-BASED (highest priority):
+ *    [ACTION:create_event ...], [EMAIL_SENT], [NOW_PLAYING: ...], [CALENDAR_ADDED],
+ *    [CALENDAR_EVENTS: count=N], [MAPS: destination="..."], [BRIEFING], [HOME: ...],
+ *    [STOCKS: symbols="..."], [PHONE_CALL: number="..."], [ALARM: time="..."],
+ *    [NEWS: count=N], [CONTACT: ...], [PHOTO_QUERY: ...], [NAVIGATE: ...],
+ *    [SPORTS], [F1], [PLACES], [FLIGHT], [PACKAGE], [DOCUMENT], [ROUTINE], [HEALTH]
+ *
+ * 2. METADATA FALLBACK (tool name from OpenClaw gateway):
+ *    google_calendar → calendar, weather → weather, gmail → email, timer → timer
+ *
+ * 3. KEYWORD DETECTION (regex on content):
+ *    Weather patterns (°, temperature, humidity), email patterns,
+ *    music patterns, navigation, stocks ($TICKER), sports, etc.
+ *
+ * Supported card types (25):
+ *   calendar_added, calendar_events, weather, email_sent, email_read,
+ *   message_sent, timer, reminder, map, music, now_playing, photos,
+ *   notes, contact, briefing, news, stocks, home, alarm, system_control,
+ *   navigation, sports, places, flight, package, document, routine, health, generic
+ *
+ * Key functions:
+ *   parseResponse(content, metadata?) → CardData
+ *   stripMarkers(content) → clean text without [MARKER:] tags
+ *   extractTimerDuration(text) → seconds from "5 minutes 30 seconds"
+ *   extractWeatherData(text, metadata?) → { city, temp, condition, high, low, humidity }
+ *   parsePhotoQuery(params) → { from, to, limit, personName, searchType }
+ *
+ * @module card-parser
+ */
 import { CardData, CardType, PhotoQuery, NowPlayingData, ContactData, ActionPayload, ActionType } from '../types';
 
 // ─── Builders ────────────────────────────────────────────────────────────────

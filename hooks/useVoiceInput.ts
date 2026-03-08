@@ -1,3 +1,23 @@
+/**
+ * useVoiceInput — Records audio from the microphone and transcribes via Whisper.
+ *
+ * Features:
+ *   - Records audio with HIGH_QUALITY preset (expo-audio)
+ *   - Real-time audio level metering (dB → normalized 0-1 scale)
+ *   - Automatic silence detection: stops recording after 1.5s at -40dB
+ *   - Sends recorded M4A audio to OpenAI Whisper API for transcription
+ *   - Supports manual stop and cancel
+ *
+ * Returns:
+ *   state: 'idle' | 'recording' | 'processing'
+ *   transcript: string (last transcription result)
+ *   audioLevel: number (0-1, for orb animation)
+ *   startRecording(), stopRecording(), cancelRecording()
+ *
+ * Config: SILENCE_THRESHOLD_DB (-40), SILENCE_DURATION_MS (1500) from constants/config.ts
+ *
+ * @module useVoiceInput
+ */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   useAudioRecorder,
