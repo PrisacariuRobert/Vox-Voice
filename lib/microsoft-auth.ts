@@ -1,3 +1,21 @@
+/**
+ * Microsoft OAuth2 — Authentication for Outlook email and calendar.
+ *
+ * Uses OAuth2 authorization code flow with PKCE for personal Microsoft accounts
+ * (Outlook.com, Hotmail.com, Live.com).
+ *
+ * Scopes: User.Read, Calendars.ReadWrite, Mail.Send, offline_access
+ *
+ * Functions:
+ *   getMicrosoftDiscovery() → OAuth2 endpoints for login.microsoftonline.com
+ *   getMicrosoftScopes() → required permission scopes
+ *   exchangeCodeForTokens(code, clientId, redirectUri, codeVerifier) → tokens
+ *   refreshMicrosoftToken(clientId, refreshToken) → new access token
+ *   getValidAccessToken(settings) → auto-refreshes if expired
+ *   getMicrosoftUserEmail(accessToken) → user's email from /me endpoint
+ *
+ * @module microsoft-auth
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Lazy-load — these are native modules that need a dev client rebuild

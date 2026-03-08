@@ -1,3 +1,20 @@
+/**
+ * Zoom OAuth — Server-to-Server OAuth for Zoom meeting creation.
+ *
+ * Uses account_credentials grant type (no redirect URI needed).
+ * The user creates a Server-to-Server OAuth app at marketplace.zoom.us
+ * with the meeting:write:admin scope.
+ *
+ * Functions:
+ *   getServerToServerToken(accountId, clientId, clientSecret) → { accessToken, expiresAt }
+ *   getValidZoomToken(settings) → auto-refreshes if expired
+ *   getZoomUserEmail(accessToken) → user's email from /users/me
+ *   signOut() → clears stored tokens
+ *
+ * Token storage: AsyncStorage with auto-refresh on expiry.
+ *
+ * @module zoom-auth
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ZOOM_TOKEN_ENDPOINT = 'https://zoom.us/oauth/token';
