@@ -109,7 +109,7 @@ export async function runSetup(projectRoot) {
   const localIP = getLocalIP();
   info(`Your local IP appears to be: ${chalk.cyan(localIP)}`);
   console.log(chalk.gray('  The gateway runs on your Mac. Make sure OpenClaw is installed.'));
-  console.log(chalk.gray('  Guide: https://github.com/nichochar/openclaw'));
+  console.log(chalk.gray('  Guide: https://github.com/openclaw/openclaw'));
   console.log('');
 
   const gatewayAnswers = await inquirer.prompt([

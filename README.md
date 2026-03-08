@@ -1,6 +1,6 @@
 # Vox
 
-A voice-first AI assistant for iOS and Android, built with React Native and Expo. Vox connects to an [OpenClaw](https://github.com/nichochar/openclaw) gateway running on your Mac to execute commands, control apps, and answer questions — all by voice.
+A voice-first AI assistant for iOS and Android, built with React Native and Expo. Vox connects to an [OpenClaw](https://github.com/openclaw/openclaw) gateway running on your Mac to execute commands, control apps, and answer questions — all by voice.
 
 Think of it as your personal Siri replacement that actually works: it can send emails, create calendar events, schedule Zoom meetings, play music, control your smart home, look up stocks, track flights, and much more.
 
@@ -37,7 +37,7 @@ npm run deploy          # picks iOS or Android interactively
 > **Need API keys?**
 > - Anthropic (Claude): [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
 > - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-> - OpenClaw gateway: [github.com/nichochar/openclaw](https://github.com/nichochar/openclaw)
+> - OpenClaw gateway: [github.com/openclaw/openclaw](https://github.com/openclaw/openclaw)
 
 Run `npm run doctor` anytime to check your setup health.
 
@@ -91,6 +91,9 @@ Run `npm run doctor` anytime to check your setup health.
 | **Photos** | "Show photos from January", "Find photos with a sunset" |
 | **Routines** | "I'm leaving home", "Bedtime", "Good night" |
 | **Health** | "How many steps today?", "My sleep data" |
+| **System Control** | "Turn on Do Not Disturb", "Set brightness to 50%", "Lock my Mac" |
+| **Web Search** | "Search for the latest news about AI", "What happened today?" |
+| **Shell Commands** | Any Mac command via the gateway (osascript, curl, open, etc.) |
 
 ### Action Cards (25 types)
 Every response is parsed into a rich, interactive card:
@@ -116,13 +119,17 @@ Every response is parsed into a rich, interactive card:
 - **SportsCard** — Live scores and standings
 - **HomeCard** — Smart home device status
 - **NotesCard** — Note creation confirmation
-- And more...
+- **ContactCard** — Contact info with call/email/message buttons
+- **SystemControlCard** — System commands and phone call confirmations
+- **MessageSentCard** — iMessage/SMS sent confirmation
+- **MapsCard** — Interactive map with Apple Maps integration
+- **GenericCard** — Fallback for any other response
 
 ## Prerequisites
 
 - **Node.js** 18+ and npm
 - **Expo CLI** (`npm install -g expo-cli`)
-- **OpenClaw Gateway** running on your Mac ([setup guide](https://github.com/nichochar/openclaw))
+- **OpenClaw Gateway** running on your Mac ([setup guide](https://github.com/openclaw/openclaw))
 - **OpenAI API key** (for Whisper STT and optionally TTS)
 - **iOS device** or **Android device** (physical device recommended for mic/audio)
 - **Xcode** (for iOS builds) or **Android Studio** (for Android builds)
@@ -170,7 +177,7 @@ npm install
 
 #### 2. Start the OpenClaw gateway on your Mac
 
-Follow the [OpenClaw setup guide](https://github.com/nichochar/openclaw) to get the gateway running. Note the WebSocket URL (default: `ws://YOUR_MAC_IP:18789`) and auth token from `openclaw.json`.
+Follow the [OpenClaw setup guide](https://github.com/openclaw/openclaw) to get the gateway running. Note the WebSocket URL (default: `ws://YOUR_MAC_IP:18789`) and auth token from `openclaw.json`.
 
 #### 3. Run the app
 
@@ -611,7 +618,7 @@ MIT
 
 ## Acknowledgments
 
-- [OpenClaw](https://github.com/nichochar/openclaw) — The AI gateway that powers Vox
+- [OpenClaw](https://github.com/openclaw/openclaw) — The AI gateway that powers Vox
 - [Expo](https://expo.dev) — React Native framework
 - [OpenAI](https://openai.com) — Whisper STT and TTS
 - [Syne](https://fonts.google.com/specimen/Syne) — Typography
