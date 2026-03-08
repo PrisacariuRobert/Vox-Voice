@@ -9,6 +9,38 @@ Think of it as your personal Siri replacement that actually works: it can send e
   <img src="assets/screenshot-card.png" width="280" alt="Vox action card" />
 </p>
 
+## Install
+
+```bash
+git clone https://github.com/PrisacariuRobert/Vox-Voice.git
+cd Vox-Voice
+npm install
+npm run setup
+```
+
+That's it. The setup wizard walks you through everything:
+
+1. ✅ Checks your system (Node 18+, Xcode, Python)
+2. 🔑 Asks for your **Anthropic API key** (powers Claude, the AI brain)
+3. 🔑 Asks for your **OpenAI API key** (powers Whisper STT + TTS)
+4. 🌐 Configures your **OpenClaw gateway** connection
+5. 👤 Sets up your profile (name, email, timezone)
+6. 🎙️ Picks your TTS voice (OpenAI, Kokoro, Google, or device)
+7. 🔌 Optional: Zoom, Microsoft 365, AI Photo Search server
+
+Then deploy to your phone:
+
+```bash
+npm run deploy          # picks iOS or Android interactively
+```
+
+> **Need API keys?**
+> - Anthropic (Claude): [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+> - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+> - OpenClaw gateway: [github.com/nichochar/openclaw](https://github.com/nichochar/openclaw)
+
+Run `npm run doctor` anytime to check your setup health.
+
 ## How It Works
 
 ```
