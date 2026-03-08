@@ -1,3 +1,25 @@
+/**
+ * useTTS — Multi-provider text-to-speech hook.
+ *
+ * Providers (configurable in Settings):
+ *   - OpenAI TTS (recommended): tts-1 model, voices: nova, alloy, echo, shimmer, onyx
+ *   - Kokoro: self-hosted OpenAI-compatible TTS server (free, requires separate server)
+ *   - Google Cloud TTS: en-US-Journey-F voice, 1.05 speaking rate
+ *   - Device: built-in iOS/Android speech synthesis (offline, free)
+ *
+ * Features:
+ *   - Strips markdown/action markers before speaking (stripMarkdown())
+ *   - Auto-fallback chain: selected provider → device native TTS
+ *   - Interruption support: stop() cancels current speech
+ *   - Audio mode management for playback over speaker
+ *
+ * Returns:
+ *   state: 'idle' | 'speaking'
+ *   speak(text): speak text with configured provider
+ *   stop(): interrupt current speech
+ *
+ * @module useTTS
+ */
 import { useState, useRef, useCallback } from 'react';
 import { setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
