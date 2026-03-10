@@ -85,7 +85,7 @@ function buildConversationContext(msgs: ConversationMessage[]): string {
 }
 
 // ─── Special phrase expansion ─────────────────────────────────────────────────
-function expandSpecialPhrase(text: string, city?: string): string {
+function expandSpecialPhrase(text: string, city?: string, emailApp?: string): string {
   const lower = text.toLowerCase().trim();
 
   // Morning briefing
@@ -94,7 +94,15 @@ function expandSpecialPhrase(text: string, city?: string): string {
     return `Give me my morning briefing right now. Do ALL of these steps in order without asking:
 1. Run: date
 2. Read today's calendar events via osascript (Apple Calendar, all calendars)
-3. Read my top 3 inbox emails via Apple Mail osascript (sender + subject only)
+3. Read my last 3 inbox emails with this EXACT command:
+osascript -e 'tell application "Mail"
+  set msgs to messages 1 thru 3 of inbox
+  set output to ""
+  repeat with m in msgs
+    set output to output & "From: " & (sender of m) & " | Subject: " & (subject of m) & return
+  end repeat
+  return output
+end tell'
 4. Get weather: curl -s "wttr.in/${encodeURIComponent(loc)}?format=3"
 Speak everything as a warm, concise personal assistant briefing. End with [BRIEFING].`;
   }
@@ -189,7 +197,19 @@ The app will find and delete the matching event automatically. Then briefly conf
 
   // Read emails (not sending)
   if (/(read.*email|check.*email|check.*inbox|my emails|my inbox|latest email|last.*email)/.test(lower)) {
-    return `Read my last 3 inbox emails using Apple Mail osascript. For each one tell me who it's from and the subject. Then offer to read the full body of any of them.`;
+    return `Read my latest inbox emails. Run this exact osascript command to get the 5 most recent emails:
+
+osascript -e 'tell application "Mail"
+  set msgs to messages 1 thru 5 of inbox
+  set output to ""
+  repeat with m in msgs
+    set output to output & "From: " & (sender of m) & return & "Subject: " & (subject of m) & return & "Date: " & (date received of m) & return & "---" & return
+  end repeat
+  return output
+end tell'
+
+IMPORTANT: Run the command EXACTLY as shown above. Do NOT modify it. Do NOT use "every message" — use "messages 1 thru 5" to get the most recent ones.
+Present each email clearly with From, Subject, and Date. Then ask if I want to read the full body of any of them.`;
   }
 
   // AirPlay redirect helper — used in all music playback prompts
@@ -851,7 +871,7 @@ export default function VoiceScreen() {
     onTranscript: useCallback(
       (text: string, detectedLanguage?: string) => {
         if (!text.trim()) { setOrbState('idle'); return; }
-        let expanded = expandSpecialPhrase(text, userLocation?.city ?? undefined);
+        let expanded = expandSpecialPhrase(text, userLocation?.city ?? undefined, settings.userEmailApp);
 
         // Multi-language: disabled for now (Whisper defaults to English)
         // If needed later, remove language='en' from whisper-stt.ts and re-enable:
